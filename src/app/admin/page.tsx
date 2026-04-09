@@ -974,7 +974,8 @@ Te esperamos lá! 🔥`;
 
     const cardsList = toPrint.map((p: any) => ({
       cardId: p.cardId,
-      name: p.name
+      name: p.name,
+      cardNumber: p.cardNumber
     }));
 
     if (cardsList.length === 0) {
@@ -1002,7 +1003,7 @@ Te esperamos lá! 🔥`;
         fetchParticipants();
 
         // Open print page with generated cards
-        const cardsForPrint = data.cards.map((c: any) => ({ cardId: c.cardId, name: c.name }));
+        const cardsForPrint = data.cards.map((c: any) => ({ cardId: c.cardId, name: c.name, cardNumber: c.cardNumber }));
         const encoded = encodeURIComponent(JSON.stringify(cardsForPrint));
         window.open(`/admin/print-cards?cards=${encoded}`, '_blank');
       } else toast.error(data.error);
