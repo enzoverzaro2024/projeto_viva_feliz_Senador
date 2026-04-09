@@ -1,0 +1,108 @@
+--- RELATÓRIO DE PARTICIPANTES RECENTES ---
+
+ID: 284 | Nome: LUCAS ALMEIDA FERREIRA | Cartão: null | Saldo: 0.00 | Criado: 2026-03-31T03:47:33.153Z
+ID: 283 | Nome:  | Cartão: 281 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.586Z
+ID: 282 | Nome:  | Cartão: 280 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.582Z
+ID: 281 | Nome: LUCIENE JOSEFINE | Cartão: 279 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.578Z
+ID: 280 | Nome: BEATRIZ SILVA LIMA SOUSA | Cartão: 278 | Saldo: 250.00 | Criado: 2026-03-25T23:48:29.574Z
+ID: 279 | Nome: SIMONE DA SILVA GALVÃO | Cartão: 277 | Saldo: 430.00 | Criado: 2026-03-25T23:48:29.569Z
+ID: 278 | Nome: JOÃO PEDRO | Cartão: 276 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.565Z
+ID: 277 | Nome: FRANCISCA DAS CHAGAS DOS SANTOS | Cartão: 275 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.561Z
+ID: 276 | Nome: ISABELA SOFIA COSTA | Cartão: 274 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.556Z
+ID: 275 | Nome: VALDINEIA PEREIRA DA COSTA | Cartão: 273 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.553Z
+ID: 274 | Nome: JOSÉ UBIRAJARA BORGES | Cartão: 272 | Saldo: 350.00 | Criado: 2026-03-25T23:48:29.548Z
+ID: 273 | Nome: SEVERINO FERNANDES | Cartão: 271 | Saldo: 200.00 | Criado: 2026-03-25T23:48:29.544Z
+ID: 272 | Nome: CLAUDIO ALVES SOUSA | Cartão: 270 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.539Z
+ID: 271 | Nome: ENOS RODRIGUES BASTOS | Cartão: 269 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.535Z
+ID: 270 | Nome: ISRAEL OLIVEIRA | Cartão: 268 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.530Z
+ID: 269 | Nome: RENILDE MAURA BARROS | Cartão: 267 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.526Z
+ID: 268 | Nome: ELANO SOUSA DE OLIVEIRA | Cartão: 266 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.522Z
+ID: 267 | Nome: FRANCISCO CARLOS SUQUENA MATO | Cartão: 265 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.518Z
+ID: 266 | Nome: SANDY MARA ARAÚJO FERREIRA | Cartão: 264 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.513Z
+ID: 265 | Nome: MARIA DIVINA ARAÚJO FERREIRA | Cartão: 263 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.509Z
+ID: 264 | Nome: MARIA LUIZA DE CARVALHO | Cartão: 262 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.504Z
+ID: 263 | Nome: JOUELINA JARDIM MELO | Cartão: 261 | Saldo: 450.00 | Criado: 2026-03-25T23:48:29.501Z
+ID: 262 | Nome: JAQUELINE MELO | Cartão: 260 | Saldo: 100.00 | Criado: 2026-03-25T23:48:29.496Z
+ID: 261 | Nome: DIVINA SILVA DOS SANTOS | Cartão: 259 | Saldo: 150.00 | Criado: 2026-03-25T23:48:29.492Z
+ID: 260 | Nome: SILEIDE ELVIS | Cartão: 258 | Saldo: 100.00 | Criado: 2026-03-25T23:48:29.488Z
+ID: 259 | Nome: GENILDO BATISTA | Cartão: 257 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.484Z
+ID: 258 | Nome: MARIA HELENA DE OLIVEIRA | Cartão: 256 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.479Z
+ID: 257 | Nome: JANAINA PINHEIRO | Cartão: 255 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.475Z
+ID: 256 | Nome: ALDENORA LIMA DE SOUZA | Cartão: 254 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.471Z
+ID: 255 | Nome: ANA LUCIA DA SILVA OLIVEIRA | Cartão: 253 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.467Z
+ID: 254 | Nome: SERGIO MORAIS DA SILVA | Cartão: 252 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.463Z
+ID: 253 | Nome: FLÁVIO LEITE SOUZA | Cartão: 251 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.458Z
+ID: 252 | Nome: MARUSE MATOS DE SOUZA | Cartão: 250 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.454Z
+ID: 251 | Nome: MARILENE MENEZES RODRIGUES | Cartão: 249 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.450Z
+ID: 250 | Nome: CARLOS LIMA FERREIRA | Cartão: 248 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.445Z
+ID: 249 | Nome: JOELMA BRITO DE ANDRADE | Cartão: 247 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.441Z
+ID: 248 | Nome: WESLEY LEAL | Cartão: 246 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.436Z
+ID: 247 | Nome: VICTOR MANOEL CRUZ CONCEIÇÃO | Cartão: 245 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.432Z
+ID: 246 | Nome: FRANCISCO AUGUSTO PEREIRA | Cartão: 244 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.428Z
+ID: 245 | Nome: JOANINA FERREIRA CAMPOS | Cartão: 243 | Saldo: 430.00 | Criado: 2026-03-25T23:48:29.424Z
+ID: 244 | Nome: MANOEL MESSIAS P. LIMA | Cartão: 242 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.420Z
+ID: 243 | Nome: ANTONIA SILVA DOS SANTOS | Cartão: 241 | Saldo: 1230.00 | Criado: 2026-03-25T23:48:29.416Z
+ID: 242 | Nome: GEDILSON SANTOS DE OLIVEIRA | Cartão: 240 | Saldo: 430.00 | Criado: 2026-03-25T23:48:29.413Z
+ID: 241 | Nome: LUCIO MARCIO PRUDENTE | Cartão: 239 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.409Z
+ID: 240 | Nome: JOSÉ AMILTON LIMA DA SILVA | Cartão: 238 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.404Z
+ID: 239 | Nome: VALDER ALVES DE AGUIAR | Cartão: 237 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.400Z
+ID: 238 | Nome: ELDEMIR DE JESUS | Cartão: 236 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.396Z
+ID: 237 | Nome:  | Cartão: 235 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.393Z
+ID: 236 | Nome:  | Cartão: 234 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.388Z
+ID: 235 | Nome: FRANCISCO JUNIOR DE ALMEIDA | Cartão: 233 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.385Z
+ID: 234 | Nome:  | Cartão: 232 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.381Z
+ID: 233 | Nome:  | Cartão: 231 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.376Z
+ID: 232 | Nome:  | Cartão: 230 | Saldo: 100.00 | Criado: 2026-03-25T23:48:29.372Z
+ID: 231 | Nome:  | Cartão: 229 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.367Z
+ID: 230 | Nome: ELENICE CARVALHO | Cartão: 228 | Saldo: 1210.00 | Criado: 2026-03-25T23:48:29.363Z
+ID: 229 | Nome:  | Cartão: 227 | Saldo: 100.00 | Criado: 2026-03-25T23:48:29.359Z
+ID: 228 | Nome:  | Cartão: 226 | Saldo: 150.00 | Criado: 2026-03-25T23:48:29.355Z
+ID: 227 | Nome:  | Cartão: 225 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.350Z
+ID: 226 | Nome:  | Cartão: 224 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.345Z
+ID: 225 | Nome:  | Cartão: 223 | Saldo: 200.00 | Criado: 2026-03-25T23:48:29.340Z
+ID: 224 | Nome:  | Cartão: 222 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.335Z
+ID: 223 | Nome: MARIS ELIUDE OLIVEIRA SILVA | Cartão: 221 | Saldo: 200.00 | Criado: 2026-03-25T23:48:29.331Z
+ID: 222 | Nome:  | Cartão: 220 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.325Z
+ID: 221 | Nome:  | Cartão: 219 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.320Z
+ID: 220 | Nome:  | Cartão: 218 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.315Z
+ID: 219 | Nome:  | Cartão: 217 | Saldo: 20.00 | Criado: 2026-03-25T23:48:29.306Z
+ID: 218 | Nome:  | Cartão: 216 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.302Z
+ID: 217 | Nome:  | Cartão: 215 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.298Z
+ID: 216 | Nome:  | Cartão: 214 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.294Z
+ID: 215 | Nome:  | Cartão: 213 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.289Z
+ID: 214 | Nome: ANA JÚLIA OLIVEIRA SILVA | Cartão: 212 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.284Z
+ID: 213 | Nome:  | Cartão: 211 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.280Z
+ID: 212 | Nome: MARIA FRANCISCA ARAÚJO | Cartão: 210 | Saldo: 0.00 | Criado: 2026-03-25T23:48:29.275Z
+ID: 211 | Nome:  | Cartão: 209 | Saldo: 100.00 | Criado: 2026-03-25T23:48:29.271Z
+ID: 210 | Nome:  | Cartão: 208 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.267Z
+ID: 209 | Nome:  | Cartão: 207 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.263Z
+ID: 208 | Nome:  | Cartão: 206 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.258Z
+ID: 207 | Nome:  | Cartão: 205 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.254Z
+ID: 206 | Nome:  | Cartão: 204 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.250Z
+ID: 205 | Nome:  | Cartão: 203 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.245Z
+ID: 204 | Nome:  | Cartão: 202 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.240Z
+ID: 203 | Nome:  | Cartão: 201 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.234Z
+ID: 202 | Nome:  | Cartão: 200 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.227Z
+ID: 201 | Nome:  | Cartão: 199 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.223Z
+ID: 200 | Nome:  | Cartão: 198 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.218Z
+ID: 199 | Nome:  | Cartão: 197 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.214Z
+ID: 198 | Nome:  | Cartão: 196 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.208Z
+ID: 197 | Nome:  | Cartão: 195 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.204Z
+ID: 196 | Nome:  | Cartão: 194 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.199Z
+ID: 195 | Nome:  | Cartão: 193 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.194Z
+ID: 194 | Nome:  | Cartão: 192 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.189Z
+ID: 193 | Nome:  | Cartão: 191 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.185Z
+ID: 192 | Nome:  | Cartão: 190 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.180Z
+ID: 191 | Nome:  | Cartão: 189 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.175Z
+ID: 190 | Nome:  | Cartão: 188 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.167Z
+ID: 189 | Nome:  | Cartão: 187 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.162Z
+ID: 188 | Nome:  | Cartão: 186 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.158Z
+ID: 187 | Nome:  | Cartão: 185 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.154Z
+ID: 186 | Nome:  | Cartão: 184 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.149Z
+ID: 185 | Nome:  | Cartão: 183 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.144Z
+
+
+--- BUSCA ISABELA / CARTÃO 101 ---
+
+ID: 103 | Nome: ISABELA SOFIA COSTA | Cartão: 101 | Saldo: 50.00 | Criado: 2026-03-23T15:23:32.631Z
+ID: 276 | Nome: ISABELA SOFIA COSTA | Cartão: 274 | Saldo: 50.00 | Criado: 2026-03-25T23:48:29.556Z
