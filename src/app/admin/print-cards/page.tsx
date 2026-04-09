@@ -7,6 +7,7 @@ import { QRCodeCanvas } from "qrcode.react";
 interface CardData {
   cardId: string;
   name: string;
+  cardNumber?: string;
 }
 
 function PrintCardsContent() {
@@ -59,8 +60,11 @@ function PrintCardsContent() {
 
   const handlePrint = () => window.print();
 
-  // Extract just the number from name like "Cartão #181" → "181"
-  const extractNumber = (name: string) => name.match(/\d+/)?.[0] ?? name;
+  // Extract just the number from name or cardNumber
+  const extractNumber = (card: CardData) => {
+    if (card.cardNumber) return String(card.cardNumber).padStart(3, '0');
+    return card.name ? card.name.match(/\d+/)?.[0] ?? card.name : '';
+  };
 
   if (loading) return <div style={{ padding: '2rem', textAlign: 'center' }}>Carregando...</div>;
   if (cards.length === 0) return <div style={{ padding: '2rem', textAlign: 'center' }}>Nenhum cartão para imprimir</div>;
@@ -141,7 +145,7 @@ function PrintCardsContent() {
               <img src={cardTemplate} crossOrigin="anonymous" alt="arte" className="card-template-img" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }} />
               <div className="card-qr-overlay">
                 <div className="card-number">
-                  {extractNumber(card.name)}
+                  {extractNumber(card)}
                 </div>
                 <QRCodeCanvas value={card.cardId} size={256} level="M" includeMargin={false}
                   style={{ width: '100%', height: 'auto', display: 'block' }} />
