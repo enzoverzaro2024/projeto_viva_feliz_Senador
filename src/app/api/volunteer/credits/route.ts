@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const amountRegex = /^\d+(\.\d{1,2})?$/;
+    const amountRegex = /^-?\d+(\.\d{1,2})?$/;
     if (!amountRegex.test(amount)) {
       return NextResponse.json(
         { error: "Pontuação inválida" },
@@ -56,7 +56,17 @@ export async function POST(req: NextRequest) {
 
     // Update participant balance
     const currentBalance = parseFloat(participant[0].currentBalance);
-    const newBalance = (currentBalance + parseFloat(amount)).toFixed(2);
+    const amountFloat = parseFloat(amount);
+    const newBalanceFloat = currentBalance + amountFloat;
+
+    if (newBalanceFloat < 0) {
+      return NextResponse.json(
+        { error: "Saldo insuficiente para realizar esta operação" },
+        { status: 400 }
+      );
+    }
+
+    const newBalance = newBalanceFloat.toFixed(2);
 
     await db.update(participants)
       .set({ currentBalance: newBalance, updatedAt: new Date() })

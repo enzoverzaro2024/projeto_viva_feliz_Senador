@@ -150,7 +150,11 @@ export default function VolunteerScanner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setSuccessDialog({ show: true, message: `${parseFloat(amountToSubmit).toFixed(0)} pontos conquistados com sucesso!` });
+      setSuccessDialog({ 
+        show: true, 
+        message: `${parseFloat(amountToSubmit).toFixed(0)} pontos processados com sucesso!`,
+        balance: data.newBalance
+      });
       setConfirmDialog({ show: false, amount: "" });
       resetScan();
     } catch (error: any) {
@@ -207,29 +211,97 @@ export default function VolunteerScanner() {
     router.push("/");
   };
 
+  const [debitAmount, setDebitAmount] = useState("");
+  const [auctionItem, setAuctionItem] = useState("");
+  const [lastBalance, setLastBalance] = useState<string | null>(null);
+
+  const handleDebit = async () => {
+    if (!scannedCard || !debitAmount) {
+      toast.error("Informe o valor do lance");
+      return;
+    }
+
+    const val = parseFloat(debitAmount);
+    if (val <= 0) {
+      toast.error("Informe um valor positivo para o débito");
+      return;
+    }
+
+    if (val > parseFloat(scannedCard.currentBalance)) {
+      toast.error(`Saldo insuficiente! O participante tem apenas ${parseFloat(scannedCard.currentBalance).toFixed(0)} pontos.`);
+      return;
+    }
+
+    if (!confirm(`Confirmar débito de ${val} pontos de ${scannedCard.name}?`)) return;
+
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/volunteer/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: scannedCard.id,
+          amount: (-val).toString(),
+          description: `Leilão: ${auctionItem || "Item arrematado"}`,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+
+      setLastBalance(data.newBalance);
+      setSuccessDialog({ 
+        show: true, 
+        message: `Débito realizado! Saldo atual de ${scannedCard.name.split(' ')[0]}:`,
+        balance: data.newBalance 
+      });
+      resetScan();
+      setDebitAmount("");
+      setAuctionItem("");
+    } catch (error: any) {
+      toast.error(error.message || "Erro ao debitar pontos");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const [confirmDialog, setConfirmDialog] = useState({ show: false, amount: "" });
-  const [successDialog, setSuccessDialog] = useState({ show: false, message: "" });
+  const [successDialog, setSuccessDialog] = useState<{show: boolean, message: string, balance?: string}>({ show: false, message: "" });
 
   return (
     <div className="min-h-screen bg-gradient-main">
       {/* Success Modal Overlay */}
       {successDialog.show && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200">
-            <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-10 h-10 text-green-600" />
+          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-green-500">
+            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Check className="w-12 h-12 text-green-600" />
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-2">Deu certo!</h3>
-            <p className="text-lg text-gray-600 mb-8 font-medium">{successDialog.message}</p>
+            <h3 className="text-xl font-bold text-gray-900 mb-2">{successDialog.message}</h3>
+            
+            {successDialog.balance && (
+              <div className="bg-slate-50 rounded-2xl p-6 mb-8 border-2 border-slate-100">
+                <p className="text-5xl font-black text-indigo-600 font-inter">
+                  {parseFloat(successDialog.balance).toFixed(0)}
+                  <span className="text-xl ml-1 text-indigo-400">pts</span>
+                </p>
+              </div>
+            )}
+
+            {!successDialog.balance && <p className="text-lg text-gray-600 mb-8 font-medium">{successDialog.message}</p>}
+            
             <button 
-              onClick={() => setSuccessDialog({ show: false, message: "" })} 
-              className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl text-lg shadow-lg hover:shadow-xl transition-all active:scale-95"
+              onClick={() => {
+                setSuccessDialog({ show: false, message: "" });
+                setLastBalance(null);
+              }} 
+              className="w-full bg-slate-900 hover:bg-black text-white font-bold py-5 rounded-2xl text-xl shadow-lg transition-all active:scale-95"
             >
-              OK, Entendi
+              FECHAR
             </button>
           </div>
         </div>
       )}
+
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
         <div className="container p-4 flex items-center justify-between">
@@ -317,9 +389,9 @@ export default function VolunteerScanner() {
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Email</p>
                     <p className="font-semibold text-sm md:text-base break-all mb-4">{scannedCard.email}</p>
                     
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Pontos</p>
-                    <p className="text-2xl md:text-3xl font-bold text-accent font-inter">
-                      {parseFloat(scannedCard.currentBalance).toFixed(0)} pts
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Pontos Atual</p>
+                    <p className="text-3xl md:text-4xl font-bold text-accent font-inter">
+                      {parseFloat(scannedCard.currentBalance).toFixed(0)} <span className="text-sm font-normal">pts</span>
                     </p>
                   </div>
 
@@ -338,95 +410,148 @@ export default function VolunteerScanner() {
               )}
             </div>
 
-            <div className="card-elegant animate-fade-in p-6 md:p-8 bg-white/60 backdrop-blur-sm" style={{ animationDelay: '0.15s' }}>
-              <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Lançar Pontos</h2>
+            <div className="flex flex-col gap-6">
+              {/* Card de Adição de Pontos */}
+              <div className="card-elegant animate-fade-in p-6 md:p-8 bg-white/60 backdrop-blur-sm">
+                <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Lançar Pontos</h2>
 
-              {scannedCard ? (
-                confirmDialog.show ? (
-                  <div className="flex flex-col gap-4 animate-fade-in h-full justify-center text-center">
-                    <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
-                      <h3 className="text-lg font-semibold text-foreground mb-2">Confirmar Adição</h3>
-                      <p className="text-muted-foreground mb-6">
-                        Você está lançando <strong className="text-accent text-xl">{parseFloat(confirmDialog.amount).toFixed(0)} pontos</strong> para <strong>{scannedCard.name}</strong>.
-                      </p>
-                      <div className="flex gap-3">
-                        <button 
-                          onClick={() => setConfirmDialog({ show: false, amount: "" })} 
-                          className="btn-secondary w-full py-3"
-                          disabled={isLoading}
-                        >
-                          Cancelar
-                        </button>
-                        <button 
-                          onClick={() => submitCredits(confirmDialog.amount)} 
-                          className="btn-primary w-full py-3"
-                          disabled={isLoading}
-                        >
-                          {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Confirmar"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-5">
-                    <div className="bg-indigo-500/10 rounded-xl p-4 border border-indigo-500/20">
-                      <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Participante</p>
-                      <p className="font-semibold text-base">{scannedCard.name}</p>
-                    </div>
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="label-elegant mb-2 block">Valores Rápidos</label>
-                        <div className="grid grid-cols-3 gap-3 mb-4">
-                          {[50, 100, 150].map((val) => (
-                            <button
-                              key={val}
-                              onClick={() => handleQuickAdd(val)}
-                              className="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow active:scale-95"
-                            >
-                              + {val} pts
-                            </button>
-                          ))}
+                {scannedCard ? (
+                  confirmDialog.show ? (
+                    <div className="flex flex-col gap-4 animate-fade-in h-full justify-center text-center">
+                      <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-2xl">
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Confirmar Adição</h3>
+                        <p className="text-muted-foreground mb-6">
+                          Você está lançando <strong className="text-accent text-xl">{parseFloat(confirmDialog.amount).toFixed(0)} pontos</strong> para <strong>{scannedCard.name}</strong>.
+                        </p>
+                        <div className="flex gap-3">
+                          <button 
+                            onClick={() => setConfirmDialog({ show: false, amount: "" })} 
+                            className="btn-secondary w-full py-3"
+                            disabled={isLoading}
+                          >
+                            Cancelar
+                          </button>
+                          <button 
+                            onClick={() => submitCredits(confirmDialog.amount)} 
+                            className="btn-primary w-full py-3"
+                            disabled={isLoading}
+                          >
+                            {isLoading ? <Loader2 className="w-5 h-5 animate-spin mx-auto" /> : "Confirmar"}
+                          </button>
                         </div>
                       </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-5">
+                      <div className="bg-indigo-500/10 rounded-xl p-4 border border-indigo-500/20">
+                        <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Participante</p>
+                        <p className="font-semibold text-base">{scannedCard.name}</p>
+                      </div>
 
-                      <div className="relative">
-                        <label className="label-elegant mb-2 block">Pontuação Customizada</label>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="label-elegant mb-2 block">Valores Rápidos</label>
+                          <div className="grid grid-cols-3 gap-3 mb-4">
+                            {[50, 100, 150].map((val) => (
+                              <button
+                                key={val}
+                                onClick={() => handleQuickAdd(val)}
+                                className="bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 font-bold py-3 rounded-xl transition-all shadow-sm hover:shadow active:scale-95"
+                              >
+                                + {val} pts
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
                         <div className="relative">
-                          <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">pts</span>
+                          <label className="label-elegant mb-2 block">Pontuação Customizada</label>
+                          <div className="relative">
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground font-semibold">pts</span>
+                            <input 
+                              type="number" 
+                              step="1" 
+                              min="0" 
+                              placeholder="0" 
+                              value={amount} 
+                              onChange={(e) => setAmount(e.target.value)} 
+                              className="input-elegant bg-white" 
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label className="label-elegant mb-2 block">Qual a Missão? (Opcional)</label>
                           <input 
-                            type="number" 
-                            step="1" 
-                            min="0" 
-                            placeholder="0" 
-                            value={amount} 
-                            onChange={(e) => setAmount(e.target.value)} 
+                            type="text" 
+                            placeholder="Ex: Visitante, Estudo, Tarefa..." 
+                            value={description} 
+                            onChange={(e) => setDescription(e.target.value)} 
                             className="input-elegant bg-white" 
                           />
                         </div>
                       </div>
 
-                      <div>
-                        <label className="label-elegant mb-2 block">Qual a Missão? (Opcional)</label>
+                      <button onClick={handleAddPoints} disabled={isLoading || !amount} className="btn-primary w-full py-3.5 mt-2 font-semibold">
+                        Lançar Agora
+                      </button>
+                    </div>
+                  )
+                ) : (
+                  <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border bg-white/40">
+                    <Heart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
+                    <p className="text-muted-foreground">Valide um cartão primeiro para lançar a pontuação</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Card de Débito (Leilão) */}
+              {scannedCard && (
+                <div className="card-elegant animate-fade-in p-6 md:p-8 border-2 border-rose-200 bg-rose-50/50">
+                  <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6 flex items-center gap-2">
+                    <span className="text-2xl">🔨</span> Leilão (Débito)
+                  </h2>
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="label-elegant mb-2 block">Item do Leilão</label>
+                      <input 
+                        type="text" 
+                        placeholder="Ex: Liquidificador, Cama..." 
+                        value={auctionItem} 
+                        onChange={(e) => setAuctionItem(e.target.value)} 
+                        className="input-elegant bg-white" 
+                      />
+                    </div>
+
+                    <div className="relative">
+                      <label className="label-elegant mb-2 block">Valor do Arremate (Será DEBITADO)</label>
+                      <div className="relative">
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500 font-bold">DEBITAR</span>
                         <input 
-                          type="text" 
-                          placeholder="Ex: Visitante, Estudo, Tarefa..." 
-                          value={description} 
-                          onChange={(e) => setDescription(e.target.value)} 
-                          className="input-elegant bg-white" 
+                          type="number" 
+                          step="50" 
+                          min="0" 
+                          placeholder="0" 
+                          value={debitAmount} 
+                          onChange={(e) => setDebitAmount(e.target.value)} 
+                          className="input-elegant bg-white border-rose-200 focus:border-rose-500 text-rose-700 font-bold" 
                         />
                       </div>
                     </div>
 
-                    <button onClick={handleAddPoints} disabled={isLoading || !amount} className="btn-primary w-full py-3.5 mt-2 font-semibold">
-                      Continuar
+                    <p className="text-xs text-rose-600 font-medium">
+                      Atenção: Este valor será subtraído do saldo atual do participante ({parseFloat(scannedCard.currentBalance).toFixed(0)} pts).
+                    </p>
+
+                    <button 
+                      onClick={handleDebit} 
+                      disabled={isLoading || !debitAmount} 
+                      className="btn-primary w-full py-4 bg-rose-600 hover:bg-rose-700 shadow-rose-200 flex justify-center items-center gap-2"
+                    >
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONFIRMAR VENDA (DÉBITO)"}
                     </button>
                   </div>
-                )
-              ) : (
-                <div className="text-center py-12 px-4 rounded-xl border border-dashed border-border bg-white/40">
-                  <Heart className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-                  <p className="text-muted-foreground">Valide um cartão primeiro para lançar a pontuação</p>
                 </div>
               )}
             </div>
