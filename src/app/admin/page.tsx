@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -33,11 +33,16 @@ interface UserData {
   createdAt: string;
 }
 
-type TabType = "aprovacoes" | "participantes" | "pontos" | "ranking" | "usuarios" | "cartoes" | "gestao_noite" | "resgate" | "reforco" | "presenca";
+type TabType = "aprovacoes" | "participantes" | "pontos" | "ranking" | "usuarios" | "cartoes" | "gestao_noite" | "resgate" | "reforco" | "presenca" | "transacoes";
 
 export default function AdminDashboard() {
-  const { user, logout } = useAuth();
+  const { user, logout, loading: loadingAuth } = useAuth();
   const router = useRouter();
+
+  // Mestre do sistema: não pode ser apagado e só ele vê certas abas sensíveis
+  const SUPER_ADMIN_EMAIL = "enzo@nb.com";
+  const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
+
   const [activeTab, setActiveTab] = useState<TabType>("ranking");
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,12 +111,13 @@ export default function AdminDashboard() {
   const [editData, setEditData] = useState({ name: "", email: "", phone: "", balance: "", cardNumber: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
   const [editLoading, setEditLoading] = useState(false);
   const [showExtraCols, setShowExtraCols] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   // Sort & filter state for participants table
   type SortKey = "name" | "cardNumber" | "currentBalance" | "age" | "address" | "neighborhood" | "email" | "phone";
   type SortDir = "asc" | "desc" | null;
-  const [sortKey, setSortKey] = useState<SortKey | null>(null);
-  const [sortDir, setSortDir] = useState<SortDir>(null);
+  const [sortKey, setSortKey] = useState<SortKey | null>("cardNumber");
+  const [sortDir, setSortDir] = useState<SortDir>("asc");
   const [colFilters, setColFilters] = useState({ name: "", email: "", phone: "", cardNumber: "", currentBalance: "", age: "", address: "", neighborhood: "" });
 
   // Points form
@@ -142,6 +148,8 @@ export default function AdminDashboard() {
     tonightPoints: "Sua presença - 50 pontos\nTrazer uma amigo que nunca veio antes - 50 pontos (por amigo)\nCada pergunta respondida - 100 pontos",
     attPoints: "50",
     customMessage: "",
+    visibleTabs: "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
+    auctionEnabled: 0
   });
   const [eventInfoLoading, setEventInfoLoading] = useState(false);
   const [absentees, setAbsentees] = useState<ParticipantData[]>([]);
@@ -161,12 +169,36 @@ export default function AdminDashboard() {
   const [resgateEditData, setResgateEditData] = useState<{ name: string; phone: string }>({ name: '', phone: '' });
   const [resgateShowDone, setResgateShowDone] = useState<"pending" | "done" | "invalid">("pending");
   const [reforcoShowDone, setReforcoShowDone] = useState<"pending" | "done" | "invalid">("pending");
+  const [allTransactions, setAllTransactions] = useState<any[]>([]);
+  const [transLoading, setTransLoading] = useState(false);
+  const [transactionSearch, setTransactionSearch] = useState("");
 
   // States for Card Transfer
   const [transferParticipant, setTransferParticipant] = useState<ParticipantData | null>(null);
   const [newCardIdForTransfer, setNewCardIdForTransfer] = useState("");
   const [newCardNumberForTransfer, setNewCardNumberForTransfer] = useState("");
   const [transferLoading, setTransferLoading] = useState(false);
+
+  // Memo para a lista de presença ordenada por quem tem MAIS presenças
+  const sortedPresenceParticipants = useMemo(() => {
+    return [...participants]
+      .filter(p =>
+        p.name.toLowerCase().includes(presenceSearch.toLowerCase()) ||
+        (p.cardNumber || '').includes(presenceSearch)
+      )
+      .map(p => {
+        const count = allAttendance.filter(a => a.participantId === p.id).length;
+        return { ...p, attendanceCount: count };
+      })
+      .sort((a, b) => b.attendanceCount - a.attendanceCount);
+  }, [participants, allAttendance, presenceSearch]);
+
+  const filteredTransactions = useMemo(() => {
+    return allTransactions.filter(t => 
+      t.participantName?.toLowerCase().includes(transactionSearch.toLowerCase()) ||
+      (t.cardNumber || "").includes(transactionSearch)
+    );
+  }, [allTransactions, transactionSearch]);
 
   const fetchParticipants = async (q?: string, silent: boolean = false) => {
     if (!silent) setLoading(true);
@@ -216,6 +248,8 @@ export default function AdminDashboard() {
           tonightPoints: data.eventInfo.tonightPoints || "",
           attPoints: data.eventInfo.attPoints?.toString() || "50",
           customMessage: data.eventInfo.customMessage || "",
+          visibleTabs: data.eventInfo.visibleTabs || "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
+          auctionEnabled: data.eventInfo.auctionEnabled || 0
         });
       }
     } catch { }
@@ -247,8 +281,18 @@ export default function AdminDashboard() {
     } catch { }
   };
 
+  const fetchTransactions = async () => {
+    setTransLoading(true);
+    try {
+      const res = await fetch("/api/admin/transactions");
+      const data = await res.json();
+      if (res.ok) setAllTransactions(data.transactions || []);
+    } catch { } finally { setTransLoading(false); }
+  };
+
   useEffect(() => {
-    if (!user || user.role !== "admin") {
+    if (loadingAuth) return;
+    if (!user || (user.role !== "admin" && !isSuperAdmin)) {
       router.push("/");
       return;
     }
@@ -259,7 +303,8 @@ export default function AdminDashboard() {
     fetchAbsentees();
     fetchAttendees();
     fetchAllAttendance();
-  }, [user]);
+    fetchTransactions();
+  }, [user, loadingAuth]);
 
   const [designLoading, setDesignLoading] = useState(false);
   const saveCardDesign = async () => {
@@ -438,6 +483,13 @@ Te esperamos lá! 🔥`;
       list.sort((a, b) => {
         let av: any = a[sortKey as keyof ParticipantData];
         let bv: any = b[sortKey as keyof ParticipantData];
+
+        // Se o nome estiver vazio, usamos o número do cartão para comparação
+        if (sortKey === "name") {
+           av = av || `Cartão #${a.cardNumber}`;
+           bv = bv || `Cartão #${b.cardNumber}`;
+        }
+
         if (sortKey === "currentBalance") { av = parseFloat(av); bv = parseFloat(bv); }
         else { av = String(av).toLowerCase(); bv = String(bv).toLowerCase(); }
         if (av < bv) return sortDir === "asc" ? -1 : 1;
@@ -453,11 +505,16 @@ Te esperamos lá! 🔥`;
     setEditingId(p.id);
     const count = allAttendance.filter(a => a.participantId === p.id).length;
     setEditData({ name: p.name, email: p.email, phone: p.phone, balance: parseFloat(p.currentBalance).toFixed(2), cardNumber: p.cardNumber || "", age: p.age || "", address: p.address || "", neighborhood: p.neighborhood || "", attendanceCount: count });
+    
+    if (typeof window !== 'undefined' && window.innerWidth < 768) {
+      setShowEditModal(true);
+    }
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setEditData({ name: "", email: "", phone: "", balance: "", cardNumber: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
+    setShowEditModal(false);
   };
 
   const saveEdit = async (exit: boolean = true, showToast: boolean = true) => {
@@ -498,17 +555,16 @@ Te esperamos lá! 🔥`;
           fetchAllAttendance();
         }
 
-        if (showToast) toast.success("Participante atualizado!");
-        if (exit) setEditingId(null);
-
-        // Recarregar em background de forma SILENCIOSA para garantir sincronia total
-        fetchParticipants(search, true);
+        if (exit) {
+          setEditingId(null);
+          setShowEditModal(false);
+        }
+        if (showToast) toast.success("Dados atualizados!");
       } else {
-        const data = await res.json();
-        if (showToast) toast.error(data.error || "Erro ao atualizar");
+        toast.error("Erro ao atualizar");
       }
     } catch {
-      if (showToast) toast.error("Erro ao atualizar");
+      toast.error("Erro ao salvar");
     } finally {
       setEditLoading(false);
     }
@@ -633,6 +689,11 @@ Te esperamos lá! 🔥`;
   };
 
   const handlePromote = async (userId: number, role: string) => {
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (targetUser?.email === SUPER_ADMIN_EMAIL) {
+      toast.error("Não é permitido alterar o nível de acesso do administrador mestre.");
+      return;
+    }
     try {
       const res = await fetch("/api/admin/users", {
         method: "POST",
@@ -660,6 +721,11 @@ Te esperamos lá! 🔥`;
 
   const saveEditUser = async () => {
     if (!editingUserId) return;
+    const targetUser = allUsers.find(u => u.id === editingUserId);
+    if (targetUser?.email === SUPER_ADMIN_EMAIL && user?.email !== SUPER_ADMIN_EMAIL) {
+      toast.error("Apenas o próprio administrador mestre pode editar seus dados.");
+      return;
+    }
     setEditUserLoading(true);
     try {
       const body: any = { userId: editingUserId, name: editUserData.name, email: editUserData.email };
@@ -680,6 +746,11 @@ Te esperamos lá! 🔥`;
   };
 
   const handleChangePassword = async (userId: number) => {
+    const targetUser = allUsers.find(u => u.id === userId);
+    if (targetUser?.email === SUPER_ADMIN_EMAIL && user?.email !== SUPER_ADMIN_EMAIL) {
+      toast.error("Você não tem permissão para alterar a senha do administrador mestre.");
+      return;
+    }
     if (!newPassword || newPassword.length < 6) {
       toast.error("Senha deve ter no mínimo 6 caracteres");
       return;
@@ -725,7 +796,13 @@ Te esperamos lá! 🔥`;
   };
 
   const handleDeleteUser = async (id: number, name: string) => {
-    if (!confirm(`Excluir usuário "${name}"? Todos os dados relacionados serão removidos.`)) return;
+    const targetUser = allUsers.find(u => u.id === id);
+    if (targetUser?.email === SUPER_ADMIN_EMAIL) {
+      toast.error("Este administrador mestre não pode ser apagado do sistema.");
+      return;
+    }
+    if (id === user?.id) { toast.error("Você não pode excluir a si mesmo"); return; }
+    if (!confirm(`Tem certeza que deseja excluir o usuário ${name}?`)) return;
     try {
       const res = await fetch("/api/admin/users", {
         method: "DELETE",
@@ -1011,6 +1088,33 @@ Te esperamos lá! 🔥`;
     finally { setBatchLoading(false); }
   };
 
+  const handleRestoreCard = async () => {
+    const num = prompt("Digite o NÚMERO do cartão que deseja restaurar (ex: 235):");
+    if (!num) return;
+    
+    setBatchLoading(true);
+    try {
+      const res = await fetch("/api/admin/batch-cards", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ specificNumber: num }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message);
+        fetchUnassignedCards();
+        fetchParticipants();
+      } else {
+        toast.error(data.error || "Erro ao restaurar");
+      }
+    } catch {
+      toast.error("Erro de conexão");
+    } finally {
+      setBatchLoading(true); // wait a bit
+      setTimeout(() => setBatchLoading(false), 500);
+    }
+  };
+
   const handlePrintUnassigned = () => {
     handleOpenPrintModal('unassigned');
   };
@@ -1075,9 +1179,10 @@ Te esperamos lá! 🔥`;
 
   const handleLogout = async () => { await logout(); router.push("/"); };
 
-  if (!user || user.role !== "admin") return null;
+  if (loadingAuth) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}><Loader2 className="animate-spin" /></div>;
+  if (!user || (user.role !== "admin" && !isSuperAdmin)) return null;
 
-  const tabs: { key: TabType; label: string; count?: number }[] = [
+  const allTabs: { key: TabType; label: string; count?: number }[] = [
     { key: "cartoes", label: "🏷️ Cartões" },
     { key: "aprovacoes", label: "Aprovações", count: isMounted ? pendingUsers.length : 0 },
     { key: "participantes", label: "Participantes", count: isMounted ? participants.length : 0 },
@@ -1086,9 +1191,13 @@ Te esperamos lá! 🔥`;
     { key: "resgate", label: "📩 Resgate (Faltaram)", count: isMounted ? absentees.length : 0 },
     { key: "reforco", label: "✨ Reforço (Compareceram)", count: isMounted ? attendees.length : 0 },
     { key: "pontos", label: "Lançar Pontos" },
+    { key: "transacoes", label: "📊 Histórico" },
     { key: "ranking", label: "Ranking" },
     { key: "usuarios", label: "Administradores", count: isMounted ? allUsers.length : 0 },
   ];
+
+  const visibleTabsArr = (eventInfo.visibleTabs || "").split(",").map(t => t.trim());
+  const tabs = allTabs.filter(t => isSuperAdmin || visibleTabsArr.includes(t.key));
 
   const iconBtnStyle = (bg: string): React.CSSProperties => ({
     background: bg, color: 'white', border: 'none', borderRadius: '0.5rem',
@@ -1130,7 +1239,7 @@ Te esperamos lá! 🔥`;
       <div className="container" style={{ padding: '1.5rem 1rem' }}>
         <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
           {/* Tabs */}
-          <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid var(--border)', marginBottom: '1.5rem', overflowX: 'auto', WebkitOverflowScrolling: 'touch', scrollbarWidth: 'none' }} className="no-scrollbar">
+          <div style={{ display: 'flex', gap: '0', borderBottom: '2px solid var(--border)', marginBottom: '1.5rem' }} className="horizontal-scroll-elegant">
             {tabs.map((tab) => (
               <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
                 padding: '0.6rem 1rem', background: 'none', border: 'none',
@@ -1390,11 +1499,12 @@ Te esperamos lá! 🔥`;
                         {getSortedFiltered().map((p) => (
                           <tr
                             key={p.id}
-                            onDoubleClick={() => startEdit(p)}
+                            onDoubleClick={() => { if (window.innerWidth >= 768) startEdit(p); }}
+                            onClick={() => { if (window.innerWidth < 768) startEdit(p); }}
                             style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                             title="Clique duplo para editar"
                           >
-                            {editingId === p.id ? (
+                            {editingId === p.id && window.innerWidth >= 768 ? (
                               <>
                                 <td style={{ padding: '0.5rem' }}>
                                   <input value={editData.name} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} />
@@ -1448,7 +1558,7 @@ Te esperamos lá! 🔥`;
                               </>
                             ) : (
                               <>
-                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">{p.name}</td>
+                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">{p.name || `Cartão #${p.cardNumber || '???'}`}</td>
                                 {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Idade">{p.age || '---'}</td>}
                                 {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Endereço">{p.address || '---'}</td>}
                                 {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Bairro">{p.neighborhood || '---'}</td>}
@@ -1516,6 +1626,67 @@ Te esperamos lá! 🔥`;
             </div>
           )}
 
+          {/* ===== Tab: Histórico de Transações ===== */}
+          {activeTab === "transacoes" && (
+            <div className="animate-fade-in space-y-6">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ fontSize: '1.4rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>📊 Histórico de Recargas</h2>
+                <button onClick={fetchTransactions} disabled={transLoading} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
+                  {transLoading ? <Loader2 className="animate-spin" size={14} /> : "Atualizar"}
+                </button>
+              </div>
+
+              <div className="card-elegant overflow-hidden p-0">
+                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
+                  <div style={{ position: 'relative' }}>
+                    <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
+                    <input type="text" placeholder="Buscar por nome ou cartão..." value={transactionSearch}
+                      onChange={(e) => setTransactionSearch(e.target.value)}
+                      className="input-elegant" style={{ paddingLeft: '2.5rem' }} />
+                  </div>
+                </div>
+
+                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
+                    <thead>
+                      <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
+                        <th style={{ textAlign: 'left', padding: '1rem' }}>Participante</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Cartão</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Data/Hora</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Pontos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredTransactions.map((t) => (
+                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                          <td style={{ padding: '1rem' }} data-label="Participante">
+                            <div style={{ fontWeight: 600 }}>{t.participantName || "---"}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{t.description || "Recarga manual"}</div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center', fontFamily: 'monospace' }} data-label="Cartão">
+                            {t.cardNumber || "---"}
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.85rem' }} data-label="Data/Hora">
+                            <div>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{new Date(t.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                          </td>
+                          <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Pontos">
+                            <span style={{ fontWeight: 800, color: '#16a34a', background: '#f0fdf4', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.9rem' }}>
+                              + {Number(t.amount)} pts
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {filteredTransactions.length === 0 && (
+                        <tr><td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum registro encontrado</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* ===== Tab: Ranking ===== */}
           {activeTab === "ranking" && (
             <div className="animate-fade-in">
@@ -1557,6 +1728,53 @@ Te esperamos lá! 🔥`;
           {/* ===== Tab: Usuários ===== */}
           {activeTab === "usuarios" && (
             <div className="animate-fade-in">
+              {isSuperAdmin && (
+                <div className="card-elegant" style={{ marginBottom: '1.5rem', border: '2px dashed var(--accent)', background: 'rgba(99,102,241,0.03)' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--accent)' }}>
+                    <Shield style={{ width: 18, height: 18 }} /> Controle de Acesso (Exclusivo Super Admin)
+                  </h3>
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '1rem' }}>
+                    Defina quais abas os outros administradores podem acessar. Você sempre verá todas.
+                  </p>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
+                    {allTabs.map(t => (
+                      <label key={t.key} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: 'white' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={visibleTabsArr.includes(t.key)}
+                          onChange={(e) => {
+                            let newArr = [...visibleTabsArr];
+                            if (e.target.checked) {
+                              if (!newArr.includes(t.key)) newArr.push(t.key);
+                            } else {
+                              newArr = newArr.filter(item => item !== t.key);
+                            }
+                            setEventInfo({ ...eventInfo, visibleTabs: newArr.join(",") });
+                          }}
+                        />
+                        {t.label.replace(/^[^\sA-Za-z]+/, '').trim()} 
+                      </label>
+                    ))}
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', padding: '0.4rem', border: '1px solid var(--border)', borderRadius: '0.5rem', background: 'white', color: '#6366f1', fontWeight: 600 }} title="Habilita funcionalidade de Leilão/Débito na tela de QRCode dos voluntários">
+                      <input 
+                        type="checkbox" 
+                        checked={!!eventInfo.auctionEnabled} 
+                        onChange={(e) => setEventInfo({ ...eventInfo, auctionEnabled: e.target.checked ? 1 : 0 })}
+                      />
+                      🔨 Leilão (Voluntários)
+                    </label>
+                  </div>
+                  <button
+                    onClick={updateEventInfo}
+                    disabled={eventInfoLoading}
+                    className="btn-primary"
+                    style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    {eventInfoLoading ? <Loader2 className="animate-spin" size={14} /> : <><Check size={14} /> Salvar Configurações de Acesso</>}
+                  </button>
+                </div>
+              )}
+
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
                 <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Gerenciar Usuários</h2>
                 <button onClick={() => setShowCreateUser(!showCreateUser)} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
@@ -1819,6 +2037,9 @@ Te esperamos lá! 🔥`;
                   <button onClick={handleGenerateBatch} disabled={batchLoading} className="btn-primary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem' }}>
                     {batchLoading ? <Loader2 style={{ width: 14, height: 14 }} className="animate-spin" /> : <><Plus style={{ width: 14, height: 14 }} /> Gerar Lote</>}
                   </button>
+                  <button onClick={handleRestoreCard} disabled={batchLoading} className="btn-secondary" style={{ padding: '0.6rem 1.25rem', fontSize: '0.85rem', background: '#dcfce7', color: '#166534', borderColor: '#bbf7d0' }}>
+                    <RefreshCw style={{ width: 14, height: 14 }} /> Restaurar Cartão Específico
+                  </button>
                   <button 
                     onClick={() => {
                       const sample = [{ cardId: "SAMPLE-123", name: "XXX" }];
@@ -1945,6 +2166,7 @@ Te esperamos lá! 🔥`;
                     </button>
                   </div>
                 </div>
+
                 <button
                   onClick={updateEventInfo}
                   disabled={eventInfoLoading}
@@ -2007,16 +2229,16 @@ Te esperamos lá! 🔥`;
 
               <div className="card-elegant p-0 overflow-hidden">
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
-                        <th style={{ textAlign: 'center', padding: '1rem', width: '120px' }}>Ações</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Nome</th>
                         {resgateShowDone === "invalid" && (
                           <>
                             <th style={{ textAlign: 'left', padding: '1rem' }}>Telefone</th>
-                            <th style={{ textAlign: 'center', padding: '1rem', width: '60px' }}>Ok</th>
-                            <th style={{ textAlign: 'center', padding: '1rem', width: '140px' }}>Status</th>
+                            <th style={{ textAlign: 'center', padding: '1rem' }}>Ok</th>
+                            <th style={{ textAlign: 'center', padding: '1rem' }}>Status</th>
                           </>
                         )}
                       </tr>
@@ -2090,7 +2312,7 @@ Te esperamos lá! 🔥`;
 
                             return resgateEditId === p.id ? (
                               <tr key={p.id} style={{ borderBottom: '1px solid var(--border)', background: '#fefce8' }}>
-                                <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <td style={{ padding: '0.75rem', textAlign: 'center' }} className="actions-cell">
                                   <div style={{ display: 'flex', gap: '0.4rem', justifyContent: 'center' }}>
                                     <button className="btn-primary" style={{ fontSize: '0.75rem', padding: '0.3rem 0.7rem' }}
                                       onClick={async () => {
@@ -2110,22 +2332,22 @@ Te esperamos lá! 🔥`;
                                     </button>
                                   </div>
                                 </td>
-                                <td style={{ padding: '0.5rem 0.75rem' }}>
+                                <td style={{ padding: '0.5rem 0.75rem' }} data-label="Nome">
                                   <input value={resgateEditData.name}
                                     onChange={(e) => setResgateEditData({ ...resgateEditData, name: e.target.value })}
                                     className="input-elegant" style={{ padding: '0.3rem 0.5rem', fontSize: '0.85rem', width: '100%' }} />
                                 </td>
-                                <td style={{ padding: '0.5rem 0.75rem' }}>
+                                <td style={{ padding: '0.5rem 0.75rem' }} data-label="Telefone">
                                   <input value={resgateEditData.phone} placeholder="Ex: 11999999999"
                                     onChange={(e) => setResgateEditData({ ...resgateEditData, phone: e.target.value })}
                                     className="input-elegant" style={{ padding: '0.3rem 0.5rem', fontSize: '0.85rem', width: '100%' }} />
                                 </td>
-                                <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <td style={{ padding: '0.75rem', textAlign: 'center' }} data-label="Ok">
                                   <input type="checkbox" checked={p.processedResgate !== 0}
                                     onChange={(e) => updateProcessed(e.target.checked ? 1 : 0)}
                                     style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                 </td>
-                                <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                <td style={{ padding: '0.75rem', textAlign: 'center' }} data-label="Status">
                                   <select
                                     value={p.processedResgate}
                                     onChange={(e) => updateProcessed(Number(e.target.value))}
@@ -2146,7 +2368,7 @@ Te esperamos lá! 🔥`;
                                 onDoubleClick={() => { setResgateEditId(p.id); setResgateEditData({ name: p.name, phone: p.phone }); }}
                                 title="Duplo clique para editar"
                               >
-                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                <td style={{ padding: '1rem', textAlign: 'center' }} className="actions-cell">
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
                                     <div
                                       onClick={async (e) => {
@@ -2190,18 +2412,18 @@ Te esperamos lá! 🔥`;
                                     )}
                                   </div>
                                 </td>
-                                <td style={{ padding: '1rem' }}><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
+                                <td style={{ padding: '1rem' }} data-label="Nome"><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
                                 {resgateShowDone === "invalid" && (
                                   <>
-                                    <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }}>
+                                    <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }} data-label="Telefone">
                                       {p.phone || '⚠ sem telefone'}
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Ok">
                                       <input type="checkbox" checked={p.processedResgate !== 0}
                                         onChange={(e) => updateProcessed(e.target.checked ? 1 : 0)}
                                         style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Status">
                                       <select
                                         value={p.processedResgate}
                                         onChange={(e) => updateProcessed(Number(e.target.value))}
@@ -2291,16 +2513,16 @@ Te esperamos lá! 🔥`;
 
               <div className="card-elegant p-0 overflow-hidden">
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
-                        <th style={{ textAlign: 'center', padding: '1rem', width: '140px' }}>Ações</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Nome</th>
                         {reforcoShowDone === "invalid" && (
                           <>
                             <th style={{ textAlign: 'left', padding: '1rem' }}>Telefone</th>
-                            <th style={{ textAlign: 'center', padding: '1rem', width: '60px' }}>Ok</th>
-                            <th style={{ textAlign: 'center', padding: '1rem', width: '140px' }}>Status</th>
+                            <th style={{ textAlign: 'center', padding: '1rem' }}>Ok</th>
+                            <th style={{ textAlign: 'center', padding: '1rem' }}>Status</th>
                           </>
                         )}
                       </tr>
@@ -2374,7 +2596,7 @@ Te esperamos lá! 🔥`;
 
                             return (
                               <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                                <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                <td style={{ padding: '1rem', textAlign: 'center' }} className="actions-cell">
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
                                     <div
                                       onClick={async (e) => {
@@ -2418,16 +2640,16 @@ Te esperamos lá! 🔥`;
                                     )}
                                   </div>
                                 </td>
-                                <td style={{ padding: '1rem' }}><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
+                                <td style={{ padding: '1rem' }} data-label="Nome"><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
                                 {reforcoShowDone === "invalid" && (
                                   <>
-                                    <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }}>{p.phone || '⚠ sem telefone'}</td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }} data-label="Telefone">{p.phone || '⚠ sem telefone'}</td>
+                                    <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Ok">
                                       <input type="checkbox" checked={p.processedReforco !== 0}
                                         onChange={(e) => updateProcessed(e.target.checked ? 1 : 0)}
                                         style={{ width: '18px', height: '18px', cursor: 'pointer' }} />
                                     </td>
-                                    <td style={{ padding: '1rem', textAlign: 'center' }}>
+                                    <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Status">
                                       <select
                                         value={p.processedReforco}
                                         onChange={(e) => updateProcessed(Number(e.target.value))}
@@ -2470,7 +2692,12 @@ Te esperamos lá! 🔥`;
           {activeTab === "presenca" && (
             <div className="animate-fade-in space-y-6">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
-                <h2 style={{ fontSize: '1.4rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>📍 Controle de Presença Detalhado</h2>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                  <h2 style={{ fontSize: '1.4rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>📍 Controle de Presença Detalhado</h2>
+                  <span style={{ background: '#eef2ff', color: '#4f46e5', padding: '0.4rem 0.8rem', borderRadius: '99px', fontSize: '0.9rem', fontWeight: 600, border: '1px solid #c7d2fe' }}>
+                    🌟 {isMounted ? allAttendance.filter(a => new Date(a.date).toLocaleDateString('pt-BR') === new Date().toLocaleDateString('pt-BR')).length : 0} presenças registradas hoje
+                  </span>
+                </div>
                 <div style={{ display: 'flex', gap: '0.75rem', flex: '1', maxWidth: '400px' }}>
                   <div style={{ position: 'relative', flex: 1 }}>
                     <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: 14, height: 14, color: 'var(--muted-foreground)' }} />
@@ -2489,45 +2716,33 @@ Te esperamos lá! 🔥`;
 
               <div className="card-elegant p-0 overflow-hidden">
                 <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '500px' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Participante</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Cartão</th>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Presenças Totais</th>
-                        <th style={{ textAlign: 'center', padding: '1rem' }}>Dias de Presença Manual</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {participants
-                        .filter(p =>
-                          p.name.toLowerCase().includes(presenceSearch.toLowerCase()) ||
-                          (p.cardNumber || '').includes(presenceSearch)
-                        )
+                      {sortedPresenceParticipants
                         .map((p) => {
                           const userAttendances = allAttendance.filter((a) => a.participantId === p.id);
 
-                          const noites = [
-                            { id: 1, label: "28/03", desc: "Presença Manual Noite 1", date: new Date(new Date().getFullYear(), 2, 28, 20, 0, 0).toISOString() },
-                            { id: 2, label: "29/03", desc: "Presença Manual Noite 2", date: new Date(new Date().getFullYear(), 2, 29, 20, 0, 0).toISOString() },
-                            { id: 3, label: "30/03", desc: "Presença Manual Noite 3", date: new Date(new Date().getFullYear(), 2, 30, 20, 0, 0).toISOString() },
-                            { id: 4, label: "31/03", desc: "Presença Manual Noite 4", date: new Date(new Date().getFullYear(), 2, 31, 20, 0, 0).toISOString() },
-                            { id: 5, label: "01/04", desc: "Presença Manual Noite 5", date: new Date(new Date().getFullYear(), 3, 1, 20, 0, 0).toISOString() }
-                          ];
-
                           return (
                             <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                              <td style={{ padding: '1rem' }}>
-                                <div style={{ fontWeight: 600 }}>{p.name}</div>
+                              <td style={{ padding: '1rem' }} data-label="Participante">
+                                <div style={{ fontWeight: 600 }}>{p.name || `Cartão #${p.cardNumber || '???'}`}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{p.email}</div>
                               </td>
-                              <td style={{ padding: '1rem', fontFamily: 'monospace' }}>{p.cardNumber || '---'}</td>
-                              <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <td style={{ padding: '1rem', fontFamily: 'monospace' }} data-label="Cartão">{p.cardNumber || '---'}</td>
+                              <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Presenças">
                                 <span style={{ fontSize: '1.2rem', fontWeight: 800, color: '#6366f1', background: '#eef2ff', padding: '0.2rem 0.8rem', borderRadius: '1rem' }}>
                                   {userAttendances.length}
                                 </span>
                               </td>
-                              <td style={{ padding: '1rem', textAlign: 'center' }}>
+                              <td style={{ padding: '1rem', textAlign: 'center' }} className="actions-cell">
                                 <button
                                   onClick={() => setAttendanceModalUser(p)}
                                   className="btn-primary"
@@ -2705,6 +2920,78 @@ Te esperamos lá! 🔥`;
           </div>
         </div>
       )}
+      {/* ===== EDIT PARTICIPANT MODAL (Mobile Friendly) ===== */}
+      {showEditModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(5px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999, padding: '1rem' }}>
+          <div className="card-elegant animate-scale-up" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', border: '2px solid var(--accent)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
+              <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Pencil size={18} className="text-accent" /> Editar Participante
+              </h3>
+              <button onClick={cancelEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={24} /></button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div>
+                <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nome Completo</label>
+                <input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className="input-elegant" />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nº Cartão</label>
+                  <input value={editData.cardNumber} onChange={(e) => setEditData({...editData, cardNumber: e.target.value})} className="input-elegant" style={{ fontFamily: 'monospace' }} />
+                </div>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Saldo (Pts)</label>
+                  <input type="number" value={editData.balance} onChange={(e) => setEditData({...editData, balance: e.target.value})} className="input-elegant" />
+                </div>
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Idade</label>
+                  <input value={editData.age} onChange={(e) => setEditData({...editData, age: e.target.value})} className="input-elegant" placeholder="Ex: 25" />
+                </div>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Telefone</label>
+                  <input value={editData.phone} onChange={(e) => setEditData({...editData, phone: e.target.value})} className="input-elegant" placeholder="(00) 00000-0000" />
+                </div>
+              </div>
+
+              <div>
+                <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Bairro</label>
+                <input value={editData.neighborhood} onChange={(e) => setEditData({...editData, neighborhood: e.target.value})} className="input-elegant" placeholder="Ex: Centro" />
+              </div>
+
+              <div>
+                <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Endereço</label>
+                <input value={editData.address} onChange={(e) => setEditData({...editData, address: e.target.value})} className="input-elegant" placeholder="Rua, Número, etc" />
+              </div>
+
+              <div>
+                <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Presenças</label>
+                <input
+                  type="number"
+                  min={0}
+                  value={editData.attendanceCount}
+                  onChange={(e) => setEditData({...editData, attendanceCount: parseInt(e.target.value) || 0})}
+                  className="input-elegant"
+                  style={{ textAlign: 'center', fontWeight: 700, color: '#6366f1' }}
+                />
+              </div>
+
+              <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>
+                <button onClick={() => saveEdit(true, true)} disabled={editLoading} className="btn-primary" style={{ flex: 1, padding: '0.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontWeight: 700 }}>
+                  {editLoading ? <Loader2 size={18} className="animate-spin" /> : <><Check size={18} /> SALVAR ALTERAÇÕES</>}
+                </button>
+                <button onClick={cancelEdit} className="btn-secondary" style={{ padding: '0.8rem 1.25rem' }}>Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+
