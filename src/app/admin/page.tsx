@@ -1474,87 +1474,31 @@ Te esperamos lá! 🔥`;
                           <tr
                             key={p.id}
                             onDoubleClick={() => startEdit(p)}
-                            onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) startEdit(p); }}
+                            onClick={() => startEdit(p)}
                             style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
                             title="Clique para editar"
                           >
-                            {editingId === p.id && window.innerWidth >= 768 ? (
+                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">{p.name || `Cartão #${p.cardNumber || '???'}`}</td>
+                            {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Idade">{p.age || '---'}</td>}
+                            {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Endereço">{p.address || '---'}</td>}
+                            {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Bairro">{p.neighborhood || '---'}</td>}
+                            {showExtraCols && (
                               <>
-                                <td style={{ padding: '0.5rem' }}>
-                                  <input value={editData.name} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} />
-                                </td>
-                                {showExtraCols && <td style={{ padding: '0.5rem' }}>
-                                  <input value={editData.age} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, age: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', width: '60px' }} placeholder="Ex: 25" />
-                                </td>}
-                                {showExtraCols && <td style={{ padding: '0.5rem' }}>
-                                  <input value={editData.address} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, address: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', width: '120px' }} placeholder="Ex: Rua X" />
-                                </td>}
-                                {showExtraCols && <td style={{ padding: '0.5rem' }}>
-                                  <input value={editData.neighborhood} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, neighborhood: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', width: '100px' }} placeholder="Ex: Centro" />
-                                </td>}
-                                {showExtraCols && (
-                                  <>
-                                    <td style={{ padding: '0.5rem' }}>
-                                      <input value={editData.email} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, email: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} />
-                                    </td>
-                                    <td style={{ padding: '0.5rem' }}>
-                                      <input value={editData.phone} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, phone: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} />
-                                    </td>
-                                  </>
-                                )}
-                                <td style={{ padding: '0.5rem' }}>
-                                  <input value={editData.cardNumber || p.cardNumber || ''} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, cardNumber: e.target.value })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem' }} />
-                                </td>
-                                <td style={{ padding: '0.5rem' }}>
-                                  <input
-                                    type="number" step="0.01" min="0"
-                                    value={editData.balance}
-                                    onBlur={() => saveEdit(false, false)}
-                                    onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)}
-                                    onChange={(e) => setEditData({ ...editData, balance: e.target.value })}
-                                    className="input-elegant"
-                                    style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', width: '90px', textAlign: 'right' }}
-                                  />
-                                </td>
-                                <td style={{ padding: '0.5rem' }}>
-                                  <input type="number" min="0" value={editData.attendanceCount} onBlur={() => saveEdit(false, false)} onKeyDown={(e) => e.key === 'Enter' && saveEdit(true, true)} onChange={(e) => setEditData({ ...editData, attendanceCount: parseInt(e.target.value) || 0 })} className="input-elegant" style={{ padding: '0.4rem 0.6rem', fontSize: '0.85rem', width: '60px', textAlign: 'center' }} />
-                                </td>
-                                <td style={{ padding: '0.5rem', textAlign: 'center' }}>
-                                  <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
-                                    <button onClick={() => saveEdit(true, true)} disabled={editLoading} title="Salvar" style={iconBtnStyle('#16a34a')}>
-                                      {editLoading ? <Loader2 style={{ width: 15, height: 15 }} className="animate-spin" /> : <Check style={{ width: 15, height: 15 }} />}
-                                    </button>
-                                    <button onClick={cancelEdit} title="Cancelar" style={iconBtnStyle('#6b7280')}>
-                                      <X style={{ width: 15, height: 15 }} />
-                                    </button>
-                                  </div>
-                                </td>
-                              </>
-                            ) : (
-                              <>
-                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">{p.name || `Cartão #${p.cardNumber || '???'}`}</td>
-                                {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Idade">{p.age || '---'}</td>}
-                                {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Endereço">{p.address || '---'}</td>}
-                                {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Bairro">{p.neighborhood || '---'}</td>}
-                                {showExtraCols && (
-                                  <>
-                                    <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Email">{p.email || '---'}</td>
-                                    <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Fone">{p.phone || '---'}</td>
-                                  </>
-                                )}
-                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--accent)' }} data-label="Cartão">{p.cardNumber || '---'}</td>
-                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'right' }} data-label="Saldo">{isMounted ? parseFloat(p.currentBalance).toFixed(0) : "0"} pts</td>
-                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', color: '#6366f1' }} data-label="Presenças">{isMounted ? allAttendance.filter(a => a.participantId === p.id).length : "0"}</td>
-                                <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }} className="actions-cell">
-                                  <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
-                                    <button onClick={(e) => { e.stopPropagation(); triggerDownload(p); }} title="Baixar Cartão" style={iconBtnStyle('var(--accent)')}><Download style={{ width: 13, height: 13 }} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); startEdit(p); }} title="Editar" style={iconBtnStyle('var(--accent)')}><Pencil style={{ width: 13, height: 13 }} /></button>
-                                    <button onClick={(e) => { e.stopPropagation(); setTransferParticipant(p); }} title="Trocar Cartão" style={iconBtnStyle('#f59e0b')}><RefreshCw style={{ width: 13, height: 13 }} /></button>
-                                    {showExtraCols && <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }} title="Excluir" style={iconBtnStyle('#dc2626')}><Trash2 style={{ width: 13, height: 13 }} /></button>}
-                                  </div>
-                                </td>
+                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Email">{p.email || '---'}</td>
+                                <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Fone">{p.phone || '---'}</td>
                               </>
                             )}
+                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--accent)' }} data-label="Cartão">{p.cardNumber || '---'}</td>
+                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'right' }} data-label="Saldo">{isMounted ? parseFloat(p.currentBalance).toFixed(0) : "0"} pts</td>
+                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', color: '#6366f1' }} data-label="Presenças">{isMounted ? allAttendance.filter(a => a.participantId === p.id).length : "0"}</td>
+                            <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }} className="actions-cell">
+                              <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
+                                <button onClick={(e) => { e.stopPropagation(); triggerDownload(p); }} title="Baixar Cartão" style={iconBtnStyle('var(--accent)')}><Download style={{ width: 13, height: 13 }} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); startEdit(p); }} title="Editar" style={iconBtnStyle('var(--accent)')}><Pencil style={{ width: 13, height: 13 }} /></button>
+                                <button onClick={(e) => { e.stopPropagation(); setTransferParticipant(p); }} title="Trocar Cartão" style={iconBtnStyle('#f59e0b')}><RefreshCw style={{ width: 13, height: 13 }} /></button>
+                                {showExtraCols && <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }} title="Excluir" style={iconBtnStyle('#dc2626')}><Trash2 style={{ width: 13, height: 13 }} /></button>}
+                              </div>
+                            </td>
                           </tr>
                         ))}
                         {getSortedFiltered().length === 0 && (
