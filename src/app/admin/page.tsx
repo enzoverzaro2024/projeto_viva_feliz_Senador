@@ -482,10 +482,7 @@ Te esperamos lá! 🔥`;
     setEditingId(p.id);
     const count = allAttendance.filter(a => a.participantId === p.id).length;
     setEditData({ name: p.name, email: p.email, phone: p.phone, balance: parseFloat(p.currentBalance).toFixed(2), cardNumber: p.cardNumber || "", age: p.age || "", address: p.address || "", neighborhood: p.neighborhood || "", attendanceCount: count });
-    
-    if (typeof window !== 'undefined' && window.innerWidth < 768) {
-      setShowEditModal(true);
-    }
+    setShowEditModal(true);
   };
 
   const cancelEdit = () => {
