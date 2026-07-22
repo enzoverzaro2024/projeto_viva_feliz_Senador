@@ -229,13 +229,41 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--background);
 }
 
-::-webkit-scrollbar-thumb {
-  background: var(--border);
+::webkit-scrollbar-thumb {
+  background: #cbd5e1;
   border-radius: 10px;
+  border: 2px solid var(--background);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #d1d5db;
+  background: #94a3b8;
+}
+
+/* Helper para scroll horizontal forçado e visível */
+.horizontal-scroll-elegant {
+  overflow-x: auto !important;
+  display: flex;
+  gap: 0.5rem;
+  padding-bottom: 8px; /* Espaço para a barra não encostar nos botões */
+  -webkit-overflow-scrolling: touch;
+}
+
+.horizontal-scroll-elegant::-webkit-scrollbar {
+  height: 6px;
+}
+
+.horizontal-scroll-elegant::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.03);
+  border-radius: 10px;
+}
+
+.horizontal-scroll-elegant::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 10px;
+}
+
+.horizontal-scroll-elegant::-webkit-scrollbar-thumb:hover {
+  background: var(--accent);
 }
 
 /* Table Premium Utilities */

@@ -12,12 +12,21 @@ interface ScannedCard {
   email: string;
   phone: string;
   currentBalance: string;
+  cardNumber: string;
+}
+
+interface Transaction {
+  id: number;
+  amount: string;
+  description: string;
+  createdAt: string;
 }
 
 export default function VolunteerScanner() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [scannedCard, setScannedCard] = useState<ScannedCard | null>(null);
+  const [scannedTransactions, setScannedTransactions] = useState<Transaction[]>([]);
   const [amount, setAmount] = useState("");
   const [description, setDescription] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -25,6 +34,7 @@ export default function VolunteerScanner() {
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [scannerActive, setScannerActive] = useState(false);
   const [wantScanner, setWantScanner] = useState(false);
+  const [auctionEnabled, setAuctionEnabled] = useState(false);
   const scannerRef = useRef<any>(null);
 
   useEffect(() => {
@@ -32,6 +42,17 @@ export default function VolunteerScanner() {
       router.push("/");
       return;
     }
+
+    const fetchSettings = async () => {
+       try {
+         const res = await fetch("/api/admin/settings/event");
+         const data = await res.json();
+         if (res.ok && data.eventInfo) {
+           setAuctionEnabled(!!data.eventInfo.auctionEnabled);
+         }
+       } catch {}
+    };
+    fetchSettings();
 
     return () => {
       stopScanner();
@@ -112,6 +133,7 @@ export default function VolunteerScanner() {
       if (!res.ok) throw new Error(data.error);
 
       setScannedCard(data.participant);
+      setScannedTransactions(data.transactions || []);
       stopScanner();
       toast.success("Cartão escaneado com sucesso!");
     } catch (error: any) {
@@ -156,6 +178,9 @@ export default function VolunteerScanner() {
         balance: data.newBalance
       });
       setConfirmDialog({ show: false, amount: "" });
+      if (scannedCard) {
+        handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
+      }
       resetScan();
     } catch (error: any) {
       toast.error(error.message || "Erro ao lançar pontos");
@@ -180,6 +205,7 @@ export default function VolunteerScanner() {
 
   const resetScan = () => {
     setScannedCard(null);
+    setScannedTransactions([]);
     setAmount("");
     setDescription("");
   };
@@ -254,6 +280,9 @@ export default function VolunteerScanner() {
         message: `Débito realizado! Saldo atual de ${scannedCard.name.split(' ')[0]}:`,
         balance: data.newBalance 
       });
+      if (scannedCard) {
+        handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
+      }
       resetScan();
       setDebitAmount("");
       setAuctionItem("");
@@ -386,8 +415,8 @@ export default function VolunteerScanner() {
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Nome</p>
                     <p className="font-semibold text-base mb-4">{scannedCard.name}</p>
                     
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Email</p>
-                    <p className="font-semibold text-sm md:text-base break-all mb-4">{scannedCard.email}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Cartão</p>
+                    <p className="font-semibold text-sm md:text-base break-all mb-4">{scannedCard.cardNumber || "Sem Cartão"}</p>
                     
                     <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Total de Pontos Atual</p>
                     <p className="text-3xl md:text-4xl font-bold text-accent font-inter">
@@ -506,7 +535,7 @@ export default function VolunteerScanner() {
               </div>
 
               {/* Card de Débito (Leilão) */}
-              {scannedCard && (
+              {scannedCard && auctionEnabled && (
                 <div className="card-elegant animate-fade-in p-6 md:p-8 border-2 border-rose-200 bg-rose-50/50">
                   <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6 flex items-center gap-2">
                     <span className="text-2xl">🔨</span> Leilão (Débito)
@@ -552,6 +581,35 @@ export default function VolunteerScanner() {
                       {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : "CONFIRMAR VENDA (DÉBITO)"}
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Card de Histórico de Transações */}
+              {scannedCard && (
+                <div className="card-elegant animate-fade-in p-6 md:p-8 bg-white/60 backdrop-blur-sm mt-6">
+                  <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Histórico de Transações</h2>
+                  
+                  {scannedTransactions.length > 0 ? (
+                    <div className="space-y-4">
+                      {scannedTransactions.map((tx) => (
+                        <div key={tx.id} className="bg-white rounded-xl p-4 border border-border flex justify-between items-center shadow-sm">
+                          <div>
+                            <p className="font-semibold text-sm">{tx.description || "Sem descrição"}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {new Date(tx.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                            </p>
+                          </div>
+                          <div className={`font-bold ${parseFloat(tx.amount) > 0 ? 'text-green-600' : 'text-rose-600'} text-right`}>
+                            {parseFloat(tx.amount) > 0 ? '+' : ''}{parseFloat(tx.amount).toFixed(0)} pts
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground text-center py-4 bg-white/40 rounded-xl border border-dashed border-border">
+                      Nenhuma transação recente encontrada.
+                    </p>
+                  )}
                 </div>
               )}
             </div>

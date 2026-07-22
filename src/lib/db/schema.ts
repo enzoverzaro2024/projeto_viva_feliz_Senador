@@ -64,7 +64,31 @@ export const eventSettings = pgTable("event_settings", {
   templateQrX: integer("template_qr_x").default(330),
   templateQrY: integer("template_qr_y").default(80),
   templateQrSize: integer("template_qr_size").default(180),
+  visibleTabs: text("visible_tabs"), // Lista de abas visíveis para admins comuns
+  auctionEnabled: integer("auction_enabled").default(0).notNull(), 
   updatedBy: integer("updated_by").references(() => users.id),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const specialtyStatusEnum = pgEnum("specialty_status", ["studying", "earned"]);
+
+export const specialties = pgTable("specialties", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).notNull(),
+  description: text("description"),
+  category: varchar("category", { length: 100 }), // e.g., 'Artes e Habilidades Manuais', 'Atividades Recreativas', etc
+  imageUrl: text("image_url"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const participantSpecialties = pgTable("participant_specialties", {
+  id: serial("id").primaryKey(),
+  participantId: integer("participant_id").notNull().references(() => participants.id),
+  specialtyId: integer("specialty_id").notNull().references(() => specialties.id),
+  status: specialtyStatusEnum("status").default("studying").notNull(),
+  earnedAt: timestamp("earned_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
@@ -78,3 +102,7 @@ export type Attendance = typeof attendance.$inferSelect;
 export type InsertAttendance = typeof attendance.$inferInsert;
 export type EventSettings = typeof eventSettings.$inferSelect;
 export type InsertEventSettings = typeof eventSettings.$inferInsert;
+export type Specialty = typeof specialties.$inferSelect;
+export type InsertSpecialty = typeof specialties.$inferInsert;
+export type ParticipantSpecialty = typeof participantSpecialties.$inferSelect;
+export type InsertParticipantSpecialty = typeof participantSpecialties.$inferInsert;

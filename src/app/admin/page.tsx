@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
@@ -403,40 +403,16 @@ ${info.tonightPoints || '...'}
 
 Te esperamos lá! 🔥`;
 
-  const lastAutoMsgRef = useRef("");
-  const prevEventInfoRef = useRef(eventInfo);
+  // Flag: true quando o usuário editou a textarea manualmente — para o auto-sync
+  const [userEditedMessage, setUserEditedMessage] = useState(false);
 
   // Sincronização em tempo real da mensagem do WhatsApp
   useEffect(() => {
     if (activeTab !== "gestao_noite") return;
-
-    // Função para ignorar diferenças de quebra de linha (\r\n vs \n) e espaços nas pontas
-    const normalize = (s: string) => (s || "").replace(/\r\n/g, "\n").trim();
+    if (userEditedMessage) return; // usuário editou manualmente, não sobrescreve
 
     const newMsg = defaultWhatsAppTemplate(eventInfo);
-    const oldMsg = defaultWhatsAppTemplate(prevEventInfoRef.current);
-    const currentMsg = eventInfo.customMessage || "";
-
-    const lastAutoLocal = localStorage.getItem("lastAutoMsg") || "";
-    
-    // Consideramos "automático" se:
-    // 1. Estiver vazio
-    // 2. Coincidir com o que o template geraria com os dados anteriores (oldMsg)
-    // 3. Coincidir com o que geramos nesta sessão (lastAutoMsgRef)
-    // 4. Coincidir com o que foi salvo no localStorage anteriormente
-    const isAuto = !currentMsg.trim() || 
-                   normalize(currentMsg) === normalize(oldMsg) || 
-                   normalize(currentMsg) === normalize(lastAutoMsgRef.current) || 
-                   normalize(currentMsg) === normalize(lastAutoLocal);
-
-    if (isAuto && normalize(currentMsg) !== normalize(newMsg)) {
-      setEventInfo(prev => ({ ...prev, customMessage: newMsg }));
-      lastAutoMsgRef.current = newMsg;
-      localStorage.setItem("lastAutoMsg", newMsg);
-    }
-
-    // Atualiza a referência para a próxima mudança
-    prevEventInfoRef.current = { ...eventInfo };
+    setEventInfo(prev => ({ ...prev, customMessage: newMsg }));
   }, [
     eventInfo.projectName, 
     eventInfo.location, 
@@ -444,7 +420,8 @@ Te esperamos lá! 🔥`;
     eventInfo.prizesList, 
     eventInfo.nextChallenge, 
     eventInfo.tonightPoints,
-    activeTab
+    activeTab,
+    userEditedMessage
   ]);
 
   useEffect(() => {
@@ -1384,7 +1361,7 @@ Te esperamos lá! 🔥`;
                 </div>
               ) : (
                 <div className="table-responsive-container card-elegant" style={{ padding: 0 }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
+                    <table className="table-premium mobile-card-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
                         {/* Sortable header row */}
                         <tr style={{ borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.03)' }}>
@@ -1499,10 +1476,10 @@ Te esperamos lá! 🔥`;
                         {getSortedFiltered().map((p) => (
                           <tr
                             key={p.id}
-                            onDoubleClick={() => { if (window.innerWidth >= 768) startEdit(p); }}
-                            onClick={() => { if (window.innerWidth < 768) startEdit(p); }}
+                            onDoubleClick={() => startEdit(p)}
+                            onClick={() => { if (typeof window !== 'undefined' && window.innerWidth < 768) startEdit(p); }}
                             style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                            title="Clique duplo para editar"
+                            title="Clique para editar"
                           >
                             {editingId === p.id && window.innerWidth >= 768 ? (
                               <>
@@ -1573,10 +1550,10 @@ Te esperamos lá! 🔥`;
                                 <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', color: '#6366f1' }} data-label="Presenças">{isMounted ? allAttendance.filter(a => a.participantId === p.id).length : "0"}</td>
                                 <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }} className="actions-cell">
                                   <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
-                                    <button onClick={() => triggerDownload(p)} title="Baixar Cartão" style={iconBtnStyle('var(--accent)')}><Download style={{ width: 13, height: 13 }} /></button>
-                                    <button onClick={() => startEdit(p)} title="Editar" style={iconBtnStyle('var(--accent)')}><Pencil style={{ width: 13, height: 13 }} /></button>
-                                    <button onClick={() => setTransferParticipant(p)} title="Trocar Cartão" style={iconBtnStyle('#f59e0b')}><RefreshCw style={{ width: 13, height: 13 }} /></button>
-                                    {showExtraCols && <button onClick={() => handleDelete(p.id, p.name)} title="Excluir" style={iconBtnStyle('#dc2626')}><Trash2 style={{ width: 13, height: 13 }} /></button>}
+                                    <button onClick={(e) => { e.stopPropagation(); triggerDownload(p); }} title="Baixar Cartão" style={iconBtnStyle('var(--accent)')}><Download style={{ width: 13, height: 13 }} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); startEdit(p); }} title="Editar" style={iconBtnStyle('var(--accent)')}><Pencil style={{ width: 13, height: 13 }} /></button>
+                                    <button onClick={(e) => { e.stopPropagation(); setTransferParticipant(p); }} title="Trocar Cartão" style={iconBtnStyle('#f59e0b')}><RefreshCw style={{ width: 13, height: 13 }} /></button>
+                                    {showExtraCols && <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }} title="Excluir" style={iconBtnStyle('#dc2626')}><Trash2 style={{ width: 13, height: 13 }} /></button>}
                                   </div>
                                 </td>
                               </>
@@ -2145,7 +2122,7 @@ Te esperamos lá! 🔥`;
                     value={eventInfo.customMessage || ""}
                     onChange={(e) => {
                       setEventInfo({ ...eventInfo, customMessage: e.target.value });
-                      localStorage.setItem("lastAutoMsg", ""); // Para de auto-atualizar após edição manual
+                      setUserEditedMessage(true); // Para de auto-atualizar após edição manual
                     }}
                     className="input-elegant min-h-[300px] border-2 border-indigo-200 focus:border-indigo-500 bg-indigo-50/30"
                     placeholder="A mensagem final aparecerá aqui..."
@@ -2154,11 +2131,8 @@ Te esperamos lá! 🔥`;
                     <button 
                       type="button"
                       onClick={() => {
-                        const newMsg = defaultWhatsAppTemplate(eventInfo);
-                        setEventInfo({ ...eventInfo, customMessage: newMsg });
-                        lastAutoMsgRef.current = newMsg;
-                        localStorage.setItem("lastAutoMsg", newMsg);
-                        toast.success("Mensagem restaurada para o padrão!");
+                        setUserEditedMessage(false); // Volta ao modo automático
+                        toast.success("Mensagem voltará a se atualizar automaticamente!");
                       }}
                       style={{ fontSize: '0.7rem', color: '#6366f1', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
                     >
@@ -2937,18 +2911,29 @@ Te esperamos lá! 🔥`;
                 <input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className="input-elegant" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nº Cartão</label>
-                  <input value={editData.cardNumber} onChange={(e) => setEditData({...editData, cardNumber: e.target.value})} className="input-elegant" style={{ fontFamily: 'monospace' }} />
+                  <input value={editData.cardNumber} onChange={(e) => setEditData({...editData, cardNumber: e.target.value})} className="input-elegant" style={{ fontFamily: 'monospace', padding: '0.5rem' }} />
                 </div>
                 <div>
                   <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Saldo (Pts)</label>
-                  <input type="number" value={editData.balance} onChange={(e) => setEditData({...editData, balance: e.target.value})} className="input-elegant" />
+                  <input type="number" value={editData.balance} onChange={(e) => setEditData({...editData, balance: e.target.value})} className="input-elegant" style={{ padding: '0.5rem' }} />
+                </div>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: '#6366f1', fontWeight: 800 }}>Presenças</label>
+                  <input
+                    type="number"
+                    min={0}
+                    value={editData.attendanceCount}
+                    onChange={(e) => setEditData({...editData, attendanceCount: parseInt(e.target.value) || 0})}
+                    className="input-elegant"
+                    style={{ textAlign: 'center', fontWeight: 800, color: '#6366f1', border: '2px solid #6366f1', background: 'rgba(99, 102, 241, 0.05)', padding: '0.5rem' }}
+                  />
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.75rem' }}>
                 <div>
                   <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Idade</label>
                   <input value={editData.age} onChange={(e) => setEditData({...editData, age: e.target.value})} className="input-elegant" placeholder="Ex: 25" />
@@ -2967,18 +2952,6 @@ Te esperamos lá! 🔥`;
               <div>
                 <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Endereço</label>
                 <input value={editData.address} onChange={(e) => setEditData({...editData, address: e.target.value})} className="input-elegant" placeholder="Rua, Número, etc" />
-              </div>
-
-              <div>
-                <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Presenças</label>
-                <input
-                  type="number"
-                  min={0}
-                  value={editData.attendanceCount}
-                  onChange={(e) => setEditData({...editData, attendanceCount: parseInt(e.target.value) || 0})}
-                  className="input-elegant"
-                  style={{ textAlign: 'center', fontWeight: 700, color: '#6366f1' }}
-                />
               </div>
 
               <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem' }}>

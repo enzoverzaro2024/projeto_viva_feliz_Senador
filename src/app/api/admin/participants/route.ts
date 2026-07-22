@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
           or(
             ilike(participants.name, `%${search}%`),
             ilike(participants.email, `%${search}%`),
-            ilike(participants.cardId, `%${search}%`)
+            ilike(participants.cardId, `%${search}%`),
+            ilike(participants.cardNumber, `%${search}%`)
           )
         )
         .orderBy(desc(participants.createdAt));

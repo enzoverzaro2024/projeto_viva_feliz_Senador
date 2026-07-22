@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { participants } from "@/lib/db/schema";
-import { eq, or, ilike } from "drizzle-orm";
+import { participants, transactions } from "@/lib/db/schema";
+import { eq, or, ilike, desc } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
   try {
@@ -45,7 +45,18 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    return NextResponse.json({ participant: result[0] });
+    const participant = result[0];
+
+    const recentTransactions = await db.select()
+      .from(transactions)
+      .where(eq(transactions.participantId, participant.id))
+      .orderBy(desc(transactions.createdAt))
+      .limit(10);
+
+    return NextResponse.json({ 
+      participant,
+      transactions: recentTransactions 
+    });
   } catch (error: any) {
     console.error("Scan card error:", error);
     return NextResponse.json(

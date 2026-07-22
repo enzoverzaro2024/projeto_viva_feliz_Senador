@@ -13,7 +13,41 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const { quantity, prefix } = await req.json();
+    const { quantity, prefix, specificNumber } = await req.json();
+
+    if (specificNumber) {
+      const paddedSpecific = String(specificNumber).padStart(3, "0");
+      
+      // Check if it already exists
+      const conflict = await db.select()
+        .from(participants)
+        .where(eq(participants.cardNumber, paddedSpecific))
+        .limit(1);
+
+      if (conflict.length > 0) {
+        return NextResponse.json({ 
+          error: `O cartão ${paddedSpecific} já existe e pertence a ${conflict[0].name || 'um cadastro em branco'}.` 
+        }, { status: 400 });
+      }
+
+      const cardId = `EC-${paddedSpecific}-${randomUUID().slice(0, 6).toUpperCase()}`;
+      await db.insert(participants).values({
+        userId: session.userId,
+        name: "",
+        email: `cartao${paddedSpecific}@evento.local`,
+        phone: "---",
+        cardId,
+        cardNumber: paddedSpecific,
+        currentBalance: "0",
+      });
+
+      return NextResponse.json({
+        success: true,
+        message: `Cartão ${paddedSpecific} restaurado com sucesso!`,
+        cards: [{ num: paddedSpecific, cardId, name: `Cartão #${paddedSpecific}`, cardNumber: paddedSpecific }]
+      });
+    }
+
     const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 200);
     const pfx = prefix || "Cartão";
 

@@ -82,10 +82,10 @@ export default function VolunteerDashboard() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div className="card-elegant animate-fade-in bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 p-6 shadow-sm">
               <div className="flex flex-col h-full justify-between">
-                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total de Créditos Adicionados</p>
+                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total de Pontos Adicionados</p>
                 <div>
                   <p className="text-4xl md:text-5xl font-bold text-accent font-inter tracking-tight">
-                    R$ {totalCredits.toFixed(2)}
+                    {totalCredits.toFixed(0)} <span className="text-2xl ml-1 opacity-80">pts</span>
                   </p>
                   <p className="text-sm text-foreground/80 mt-2 font-medium bg-white/50 w-fit px-2 py-1 rounded">
                     {transactions.length} transações
@@ -140,7 +140,7 @@ export default function VolunteerDashboard() {
                           ID: {txn.participantId}
                         </td>
                         <td className="px-6 py-4 text-sm font-bold text-accent whitespace-nowrap">
-                          +R$ {parseFloat(txn.amount).toFixed(2)}
+                          + {parseFloat(txn.amount).toFixed(0)} pts
                         </td>
                         <td className="px-6 py-4 text-sm text-foreground/80 min-w-[200px]">
                           {txn.description || "-"}
