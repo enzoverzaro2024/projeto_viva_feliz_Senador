@@ -408,8 +408,7 @@ Te esperamos lá! 🔥`;
 
   // Sincronização em tempo real da mensagem do WhatsApp
   useEffect(() => {
-    if (activeTab !== "gestao_noite") return;
-    if (userEditedMessage) return; // usuário editou manualmente, não sobrescreve
+    if (userEditedMessage) return; // usuário editou a textarea final manualmente, não sobrescreve
 
     const newMsg = defaultWhatsAppTemplate(eventInfo);
     setEventInfo(prev => ({ ...prev, customMessage: newMsg }));
@@ -420,7 +419,6 @@ Te esperamos lá! 🔥`;
     eventInfo.prizesList, 
     eventInfo.nextChallenge, 
     eventInfo.tonightPoints,
-    activeTab,
     userEditedMessage
   ]);
 
@@ -1992,7 +1990,7 @@ Te esperamos lá! 🔥`;
                   <input
                     type="text"
                     value={eventInfo.projectName}
-                    onChange={(e) => setEventInfo({ ...eventInfo, projectName: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, projectName: e.target.value }); }}
                     className="input-elegant"
                     placeholder="Ex: Vida Nova"
                   />
@@ -2002,7 +2000,7 @@ Te esperamos lá! 🔥`;
                   <input
                     type="text"
                     value={eventInfo.location}
-                    onChange={(e) => setEventInfo({ ...eventInfo, location: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, location: e.target.value }); }}
                     className="input-elegant"
                     placeholder="Ex: Rua Direita, 10 - Centro"
                   />
@@ -2011,7 +2009,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">📝 Resumo da Palestra Anterior</label>
                   <textarea
                     value={eventInfo.prevSummary}
-                    onChange={(e) => setEventInfo({ ...eventInfo, prevSummary: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, prevSummary: e.target.value }); }}
                     className="input-elegant min-h-[100px]"
                     placeholder="O que falamos ontem..."
                   />
@@ -2020,7 +2018,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🎁 Lista de Prêmios Atuais</label>
                   <textarea
                     value={eventInfo.prizesList}
-                    onChange={(e) => setEventInfo({ ...eventInfo, prizesList: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, prizesList: e.target.value }); }}
                     className="input-elegant min-h-[100px]"
                     placeholder="Fogão, Panela de Pressão..."
                   />
@@ -2029,7 +2027,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🎯 Desafio(s) do Dia</label>
                   <textarea
                     value={eventInfo.nextChallenge}
-                    onChange={(e) => setEventInfo({ ...eventInfo, nextChallenge: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, nextChallenge: e.target.value }); }}
                     className="input-elegant min-h-[100px]"
                     placeholder="DESAFIO VENCIDO - 300 pontos..."
                   />
@@ -2038,7 +2036,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🏅 Regras de Pontos da Noite</label>
                   <textarea
                     value={eventInfo.tonightPoints}
-                    onChange={(e) => setEventInfo({ ...eventInfo, tonightPoints: e.target.value })}
+                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, tonightPoints: e.target.value }); }}
                     className="input-elegant min-h-[100px]"
                     placeholder="Presença, Traga amigo..."
                   />
