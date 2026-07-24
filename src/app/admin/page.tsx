@@ -2282,7 +2282,7 @@ Te esperamos lá! 🔥`;
                                 title="Duplo clique para editar"
                               >
                                 <td style={{ padding: '1rem', textAlign: 'center' }} className="actions-cell">
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
                                     <div
                                       onClick={async (e) => {
                                         e.preventDefault();
@@ -2314,7 +2314,7 @@ Te esperamos lá! 🔥`;
                                       <Heart style={{ width: 14, height: 14, fill: 'white' }} /> {p.processedResgate === 5 ? 'Em Processo...' : 'Abrir Zap'}
                                     </div>
                                     {resgateShowDone === "pending" && (
-                                      <div style={{ display: 'flex', gap: '0.25rem', width: '100%' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                                         <button onClick={handleEnviado} className="btn-secondary" style={{ fontSize: '0.65rem', padding: '0.3rem 0.4rem', flex: 1, color: '#16a34a', borderColor: '#16a34a' }}>
                                           Enviado
                                         </button>
@@ -2519,7 +2519,7 @@ Te esperamos lá! 🔥`;
                             return (
                               <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
                                 <td style={{ padding: '1rem', textAlign: 'center' }} className="actions-cell">
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', alignItems: 'center' }}>
                                     <div
                                       onClick={async (e) => {
                                         e.preventDefault();
@@ -2551,7 +2551,7 @@ Te esperamos lá! 🔥`;
                                       <Heart style={{ width: 14, height: 14, fill: 'white' }} /> {p.processedReforco === 5 ? 'Em Processo...' : 'Abrir Zap'}
                                     </div>
                                     {reforcoShowDone === "pending" && (
-                                      <div style={{ display: 'flex', gap: '0.25rem', width: '100%' }}>
+                                      <div style={{ display: 'flex', gap: '0.5rem', width: '100%' }}>
                                         <button onClick={handleEnviado} className="btn-secondary" style={{ fontSize: '0.65rem', padding: '0.3rem 0.4rem', flex: 1, color: '#16a34a', borderColor: '#16a34a' }}>
                                           Enviado
                                         </button>
