@@ -2147,6 +2147,9 @@ Te esperamos lá! 🔥`;
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Nome</th>
+                        {resgateShowDone === "done" && (
+                          <th style={{ textAlign: 'center', padding: '1rem', color: '#6366f1' }}>↩ Desfazer</th>
+                        )}
                         {resgateShowDone === "invalid" && (
                           <>
                             <th style={{ textAlign: 'left', padding: '1rem' }}>Telefone</th>
@@ -2323,18 +2326,20 @@ Te esperamos lá! 🔥`;
                                         </button>
                                       </div>
                                     )}
-                                    {resgateShowDone === "done" && (
-                                      <button
-                                        onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
-                                        className="btn-secondary"
-                                        style={{ fontSize: '0.65rem', padding: '0.3rem 0.5rem', width: '100%', color: '#6366f1', borderColor: '#6366f1' }}
-                                      >
-                                        ↩ Desfazer
-                                      </button>
-                                    )}
                                   </div>
                                 </td>
                                 <td style={{ padding: '1rem' }} data-label="Nome"><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
+                                {resgateShowDone === "done" && (
+                                  <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Desfazer">
+                                    <button
+                                      onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
+                                      className="btn-secondary"
+                                      style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem', color: '#6366f1', borderColor: '#6366f1', whiteSpace: 'nowrap' }}
+                                    >
+                                      ↩ Desfazer
+                                    </button>
+                                  </td>
+                                )}
                                 {resgateShowDone === "invalid" && (
                                   <>
                                     <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }} data-label="Telefone">
@@ -2440,6 +2445,9 @@ Te esperamos lá! 🔥`;
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Nome</th>
+                        {reforcoShowDone === "done" && (
+                          <th style={{ textAlign: 'center', padding: '1rem', color: '#6366f1' }}>↩ Desfazer</th>
+                        )}
                         {reforcoShowDone === "invalid" && (
                           <>
                             <th style={{ textAlign: 'left', padding: '1rem' }}>Telefone</th>
@@ -2560,18 +2568,20 @@ Te esperamos lá! 🔥`;
                                         </button>
                                       </div>
                                     )}
-                                    {reforcoShowDone === "done" && (
-                                      <button
-                                        onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
-                                        className="btn-secondary"
-                                        style={{ fontSize: '0.65rem', padding: '0.3rem 0.5rem', width: '100%', color: '#6366f1', borderColor: '#6366f1' }}
-                                      >
-                                        ↩ Desfazer
-                                      </button>
-                                    )}
                                   </div>
                                 </td>
                                 <td style={{ padding: '1rem' }} data-label="Nome"><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
+                                {reforcoShowDone === "done" && (
+                                  <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Desfazer">
+                                    <button
+                                      onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
+                                      className="btn-secondary"
+                                      style={{ fontSize: '0.75rem', padding: '0.4rem 0.8rem', color: '#6366f1', borderColor: '#6366f1', whiteSpace: 'nowrap' }}
+                                    >
+                                      ↩ Desfazer
+                                    </button>
+                                  </td>
+                                )}
                                 {reforcoShowDone === "invalid" && (
                                   <>
                                     <td style={{ padding: '1rem', color: p.phone ? 'inherit' : '#dc2626', fontStyle: p.phone ? 'normal' : 'italic' }} data-label="Telefone">{p.phone || '⚠ sem telefone'}</td>
