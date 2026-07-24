@@ -200,6 +200,46 @@ export default function AdminDashboard() {
     );
   }, [allTransactions, transactionSearch]);
 
+  // Helper compartilhado: telefone inválido
+  const isInvalidPhone = (phone: string) => {
+    if (!phone) return true;
+    const p = phone.toLowerCase();
+    return p === "" || p.includes("---") || p.includes("nao") || p.includes("informado") || p.includes("errado") || p.replace(/\D/g, '').length < 8;
+  };
+
+  // Contadores reais dos badges (excluem telefones inválidos/duplicados)
+  const resgatePendingCount = useMemo(() => {
+    const seen = new Set();
+    return absentees.filter(a => {
+      if (a.processedResgate !== 0 && a.processedResgate !== 5) return false;
+      if (isInvalidPhone(a.phone)) return false;
+      const raw = (a.phone || '').replace(/\D/g, '');
+      if (seen.has(raw)) return false;
+      seen.add(raw);
+      return true;
+    }).length;
+  }, [absentees]);
+
+  const resgateInvalidCount = useMemo(() => {
+    return absentees.filter(a => a.processedResgate === 4 || (a.processedResgate === 0 && isInvalidPhone(a.phone))).length;
+  }, [absentees]);
+
+  const reforcoPendingCount = useMemo(() => {
+    const seen = new Set();
+    return attendees.filter(a => {
+      if (a.processedReforco !== 0 && a.processedReforco !== 5) return false;
+      if (isInvalidPhone(a.phone)) return false;
+      const raw = (a.phone || '').replace(/\D/g, '');
+      if (seen.has(raw)) return false;
+      seen.add(raw);
+      return true;
+    }).length;
+  }, [attendees]);
+
+  const reforcoInvalidCount = useMemo(() => {
+    return attendees.filter(a => a.processedReforco === 4 || (a.processedReforco === 0 && isInvalidPhone(a.phone))).length;
+  }, [attendees]);
+
   const fetchParticipants = async (q?: string, silent: boolean = false) => {
     if (!silent) setLoading(true);
     try {
@@ -2102,7 +2142,7 @@ Te esperamos lá! 🔥`;
                       onClick={() => setResgateShowDone("pending")} 
                       className={`text-xs px-4 py-2 rounded-lg transition-all flex items-center gap-2 border ${resgateShowDone === "pending" ? 'bg-indigo-600 text-white shadow-lg border-indigo-700 font-semibold' : 'hover:bg-white hover:shadow-sm border-transparent text-slate-600'}`}
                     >
-                      Pendentes <span style={{ opacity: 0.8, fontSize: '0.7rem', background: resgateShowDone === "pending" ? 'rgba(255,255,255,0.2)' : '#e2e8f0', padding: '1px 6px', borderRadius: '999px' }}>{absentees.filter(a => a.processedResgate === 0 || a.processedResgate === 5).length}</span>
+                      Pendentes <span style={{ opacity: 0.8, fontSize: '0.7rem', background: resgateShowDone === "pending" ? 'rgba(255,255,255,0.2)' : '#e2e8f0', padding: '1px 6px', borderRadius: '999px' }}>{resgatePendingCount}</span>
                     </button>
                     <button 
                       onClick={() => setResgateShowDone("done")} 
@@ -2114,7 +2154,7 @@ Te esperamos lá! 🔥`;
                       onClick={() => setResgateShowDone("invalid")} 
                       className={`text-xs px-4 py-2 rounded-lg transition-all flex items-center gap-2 border ${resgateShowDone === "invalid" ? 'bg-amber-500 text-white shadow-lg border-amber-600 font-semibold' : 'hover:bg-white hover:shadow-sm border-transparent text-slate-600'}`}
                     >
-                      ⚠️ Corrigir <span style={{ opacity: 0.8, fontSize: '0.7rem', background: resgateShowDone === "invalid" ? 'rgba(255,255,255,0.2)' : '#fef3c7', padding: '1px 6px', borderRadius: '999px', color: resgateShowDone === "invalid" ? 'white' : '#92400e' }}>{absentees.filter(a => a.processedResgate === 4).length}</span>
+                      ⚠️ Corrigir <span style={{ opacity: 0.8, fontSize: '0.7rem', background: resgateShowDone === "invalid" ? 'rgba(255,255,255,0.2)' : '#fef3c7', padding: '1px 6px', borderRadius: '999px', color: resgateShowDone === "invalid" ? 'white' : '#92400e' }}>{resgateInvalidCount}</span>
                     </button>
                   </div>
                   {resgateShowDone === "done" && (
@@ -2400,7 +2440,7 @@ Te esperamos lá! 🔥`;
                       onClick={() => setReforcoShowDone("pending")} 
                       className={`text-xs px-4 py-2 rounded-lg transition-all flex items-center gap-2 border ${reforcoShowDone === "pending" ? 'bg-indigo-600 text-white shadow-lg border-indigo-700 font-semibold' : 'hover:bg-white hover:shadow-sm border-transparent text-slate-600'}`}
                     >
-                      Pendentes <span style={{ opacity: 0.8, fontSize: '0.7rem', background: reforcoShowDone === "pending" ? 'rgba(255,255,255,0.2)' : '#e2e8f0', padding: '1px 6px', borderRadius: '999px' }}>{attendees.filter(a => a.processedReforco === 0 || a.processedReforco === 5).length}</span>
+                      Pendentes <span style={{ opacity: 0.8, fontSize: '0.7rem', background: reforcoShowDone === "pending" ? 'rgba(255,255,255,0.2)' : '#e2e8f0', padding: '1px 6px', borderRadius: '999px' }}>{reforcoPendingCount}</span>
                     </button>
                     <button 
                       onClick={() => setReforcoShowDone("done")} 
@@ -2412,7 +2452,7 @@ Te esperamos lá! 🔥`;
                       onClick={() => setReforcoShowDone("invalid")} 
                       className={`text-xs px-4 py-2 rounded-lg transition-all flex items-center gap-2 border ${reforcoShowDone === "invalid" ? 'bg-amber-500 text-white shadow-lg border-amber-600 font-semibold' : 'hover:bg-white hover:shadow-sm border-transparent text-slate-600'}`}
                     >
-                      ⚠️ Corrigir <span style={{ opacity: 0.8, fontSize: '0.7rem', background: reforcoShowDone === "invalid" ? 'rgba(255,255,255,0.2)' : '#fef3c7', padding: '1px 6px', borderRadius: '999px', color: reforcoShowDone === "invalid" ? 'white' : '#92400e' }}>{attendees.filter(a => a.processedReforco === 4).length}</span>
+                      ⚠️ Corrigir <span style={{ opacity: 0.8, fontSize: '0.7rem', background: reforcoShowDone === "invalid" ? 'rgba(255,255,255,0.2)' : '#fef3c7', padding: '1px 6px', borderRadius: '999px', color: reforcoShowDone === "invalid" ? 'white' : '#92400e' }}>{reforcoInvalidCount}</span>
                     </button>
                   </div>
                   {reforcoShowDone === "done" && (
