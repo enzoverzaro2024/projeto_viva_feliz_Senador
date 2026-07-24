@@ -2323,6 +2323,15 @@ Te esperamos lá! 🔥`;
                                         </button>
                                       </div>
                                     )}
+                                    {resgateShowDone === "done" && (
+                                      <button
+                                        onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
+                                        className="btn-secondary"
+                                        style={{ fontSize: '0.65rem', padding: '0.3rem 0.5rem', width: '100%', color: '#6366f1', borderColor: '#6366f1' }}
+                                      >
+                                        ↩ Desfazer
+                                      </button>
+                                    )}
                                   </div>
                                 </td>
                                 <td style={{ padding: '1rem' }} data-label="Nome"><span style={{ color: 'var(--muted-foreground)', marginRight: '0.4rem', fontSize: '0.8rem' }}>{displayNum}.</span>{p.name}</td>
@@ -2550,6 +2559,15 @@ Te esperamos lá! 🔥`;
                                           Não é Zap
                                         </button>
                                       </div>
+                                    )}
+                                    {reforcoShowDone === "done" && (
+                                      <button
+                                        onClick={() => { updateProcessed(0); toast.success("Desfeito! Voltou para Pendentes."); }}
+                                        className="btn-secondary"
+                                        style={{ fontSize: '0.65rem', padding: '0.3rem 0.5rem', width: '100%', color: '#6366f1', borderColor: '#6366f1' }}
+                                      >
+                                        ↩ Desfazer
+                                      </button>
                                     )}
                                   </div>
                                 </td>
