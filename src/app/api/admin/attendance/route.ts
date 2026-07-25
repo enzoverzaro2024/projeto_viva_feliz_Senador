@@ -39,28 +39,25 @@ export async function DELETE(req: NextRequest) {
     }
 
     const attRecord = record[0];
-    const thresholdDate = new Date(new Date().getFullYear(), 3, 1, 23, 59, 59); // 01/04 23:59:59
 
-    if (new Date(attRecord.date) > thresholdDate) {
-      // Find points to deduct
-      const settings = await db.select().from(eventSettings).where(eq(eventSettings.id, 1)).limit(1);
-      const pointsToDeduct = parseFloat(settings[0]?.attPoints || "50");
+    // Find points to deduct
+    const settings = await db.select().from(eventSettings).where(eq(eventSettings.id, 1)).limit(1);
+    const pointsToDeduct = parseFloat(settings[0]?.attPoints || "50");
 
-      if (pointsToDeduct > 0) {
-        // Log transaction
-        await db.insert(transactions).values({
-          participantId: attRecord.participantId,
-          volunteerId: session.userId,
-          amount: (-pointsToDeduct).toString(),
-          description: "Estorno: Remoção de Presença"
-        });
+    if (pointsToDeduct > 0) {
+      // Log transaction
+      await db.insert(transactions).values({
+        participantId: attRecord.participantId,
+        volunteerId: session.userId,
+        amount: (-pointsToDeduct).toString(),
+        description: "Estorno: Remoção de Presença"
+      });
 
-        // Deduct from participant
-        const part = await db.select().from(participants).where(eq(participants.id, attRecord.participantId)).limit(1);
-        if (part.length > 0) {
-           const newBalance = (parseFloat(part[0].currentBalance) - pointsToDeduct).toFixed(2);
-           await db.update(participants).set({ currentBalance: newBalance }).where(eq(participants.id, attRecord.participantId));
-        }
+      // Deduct from participant
+      const part = await db.select().from(participants).where(eq(participants.id, attRecord.participantId)).limit(1);
+      if (part.length > 0) {
+         const newBalance = (parseFloat(part[0].currentBalance) - pointsToDeduct).toFixed(2);
+         await db.update(participants).set({ currentBalance: newBalance }).where(eq(participants.id, attRecord.participantId));
       }
     }
 

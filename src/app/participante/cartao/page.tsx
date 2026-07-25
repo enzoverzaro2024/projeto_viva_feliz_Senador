@@ -162,7 +162,7 @@ export default function ParticipantCard() {
         <div className="max-w-xl mx-auto space-y-6">
           
           {/* Daily Mission Info */}
-          {(eventInfo.prevSummary || eventInfo.nextChallenge) && (
+          {(eventInfo.prevSummary || eventInfo.nextChallenge || eventInfo.prizesList || eventInfo.tonightPoints) && (
             <div className="card-elegant animate-fade-in bg-gradient-accent text-white border-none p-6 shadow-xl relative overflow-hidden">
                <div style={{ position: 'absolute', right: '-10%', top: '-10%', opacity: 0.1 }}>
                 <Heart size={120} fill="white" />

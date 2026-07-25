@@ -279,6 +279,7 @@ export default function AdminDashboard() {
       const res = await fetch("/api/admin/settings/event");
       const data = await res.json();
       if (res.ok && data.eventInfo) {
+        const loadedMsg = data.eventInfo.customMessage || "";
         setEventInfo({
           projectName: data.eventInfo.projectName || "Viva Feliz",
           location: data.eventInfo.location || "",
@@ -287,10 +288,13 @@ export default function AdminDashboard() {
           nextChallenge: data.eventInfo.nextChallenge || "",
           tonightPoints: data.eventInfo.tonightPoints || "",
           attPoints: data.eventInfo.attPoints?.toString() || "50",
-          customMessage: data.eventInfo.customMessage || "",
+          customMessage: loadedMsg,
           visibleTabs: data.eventInfo.visibleTabs || "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
           auctionEnabled: data.eventInfo.auctionEnabled || 0
         });
+        if (loadedMsg.trim() !== "") {
+          setUserEditedMessage(true);
+        }
       }
     } catch { }
   };
@@ -423,25 +427,40 @@ export default function AdminDashboard() {
   };
 
   // Template centralizado para garantir consistência
-  const defaultWhatsAppTemplate = (info: any) => `Somos do Projeto *${info.projectName}*! ✨
+  const defaultWhatsAppTemplate = (info: any) => `Somos do Projeto *${info.projectName || 'Viva Feliz'}*! ✨
 
-🌟 Ontem: ${info.prevSummary || 'Programação foi excelente!'}
+Oi *{nome}*!
 
-* 🎯 Hoje: É o dia mais importante do projeto ${info.projectName}!*
+📝 *Resumo da Palestra Anterior:*
+{resumo}
 
-🎯 *O desafio de hoje é:*
-🏆 Desafio: ${info.nextChallenge || '...'}
+🎁 *Prêmios em Jogo:*
+{premios}
 
-Lembre-se que você pode ganhar prêmios incríveis! 🎁
-*Prêmios como:*
-${info.prizesList || '...'}
+🎯 *Desafio de Hoje:*
+{desafio}
 
-🏆 *Pontos hoje:*
-${info.tonightPoints || '...'}
+🏆 *Pontos Hoje:*
+{pontos}
 
-📍 *Local:* ${info.location || '...'}
+📍 *Local:* {local}
 
 Te esperamos lá! 🔥`;
+
+  // Função centralizada para formatar a mensagem com todas as tags substituídas
+  const formatWhatsAppMessage = (rawTemplate: string, info: typeof eventInfo, participantName: string) => {
+    const firstName = (participantName || '').trim().split(' ')[0] || '';
+    let msg = (rawTemplate && rawTemplate.trim() !== "") ? rawTemplate : defaultWhatsAppTemplate(info);
+    msg = msg.replace(/{nome}/g, firstName);
+    msg = msg.replace(/{projeto}/g, info.projectName || 'Viva Feliz');
+    msg = msg.replace(/{proximo}/g, info.location || '');
+    msg = msg.replace(/{local}/g, info.location || '');
+    msg = msg.replace(/{premios}/g, info.prizesList || '');
+    msg = msg.replace(/{resumo}/g, info.prevSummary || '');
+    msg = msg.replace(/{desafio}/g, info.nextChallenge || '');
+    msg = msg.replace(/{pontos}/g, info.tonightPoints || '');
+    return msg;
+  };
 
   // Flag: true quando o usuário editou a textarea manualmente — para o auto-sync
   const [userEditedMessage, setUserEditedMessage] = useState(false);
@@ -2030,7 +2049,7 @@ Te esperamos lá! 🔥`;
                   <input
                     type="text"
                     value={eventInfo.projectName}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, projectName: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, projectName: e.target.value })}
                     className="input-elegant"
                     placeholder="Ex: Vida Nova"
                   />
@@ -2040,7 +2059,7 @@ Te esperamos lá! 🔥`;
                   <input
                     type="text"
                     value={eventInfo.location}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, location: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, location: e.target.value })}
                     className="input-elegant"
                     placeholder="Ex: Rua Direita, 10 - Centro"
                   />
@@ -2049,7 +2068,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">📝 Resumo da Palestra Anterior</label>
                   <textarea
                     value={eventInfo.prevSummary}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, prevSummary: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, prevSummary: e.target.value })}
                     className="input-elegant min-h-[100px]"
                     placeholder="O que falamos ontem..."
                   />
@@ -2058,7 +2077,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🎁 Lista de Prêmios Atuais</label>
                   <textarea
                     value={eventInfo.prizesList}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, prizesList: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, prizesList: e.target.value })}
                     className="input-elegant min-h-[100px]"
                     placeholder="Fogão, Panela de Pressão..."
                   />
@@ -2067,7 +2086,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🎯 Desafio(s) do Dia</label>
                   <textarea
                     value={eventInfo.nextChallenge}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, nextChallenge: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, nextChallenge: e.target.value })}
                     className="input-elegant min-h-[100px]"
                     placeholder="DESAFIO VENCIDO - 300 pontos..."
                   />
@@ -2076,7 +2095,7 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant">🏅 Regras de Pontos da Noite</label>
                   <textarea
                     value={eventInfo.tonightPoints}
-                    onChange={(e) => { setUserEditedMessage(false); setEventInfo({ ...eventInfo, tonightPoints: e.target.value }); }}
+                    onChange={(e) => setEventInfo({ ...eventInfo, tonightPoints: e.target.value })}
                     className="input-elegant min-h-[100px]"
                     placeholder="Presença, Traga amigo..."
                   />
@@ -2094,16 +2113,46 @@ Te esperamos lá! 🔥`;
                   <label className="label-elegant text-indigo-600 font-bold flex items-center gap-2">
                     <QrCode style={{ width: 18, height: 18 }} /> 📱 MENSAGEM FINAL PARA WHATSAPP
                   </label>
-                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.5rem' }}>
-                    Esta é a mensagem que será enviada. Ela se atualiza sozinha conforme você preenche os campos acima, mas você pode editá-la livremente abaixo.
+                  <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.3rem' }}>
+                    Esta mensagem será usada no envio para os participantes. Clique nas tags abaixo para inseri-las no texto:
                   </p>
+                  
+                  {/* Chips de Tags disponíveis */}
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {[
+                      { tag: "{nome}", label: "👤 Nome" },
+                      { tag: "{projeto}", label: "📛 Projeto" },
+                      { tag: "{resumo}", label: "📝 Resumo" },
+                      { tag: "{premios}", label: "🎁 Prêmios" },
+                      { tag: "{desafio}", label: "🎯 Desafio" },
+                      { tag: "{pontos}", label: "🏆 Pontos" },
+                      { tag: "{local}", label: "📍 Local" },
+                    ].map((item) => (
+                      <button
+                        key={item.tag}
+                        type="button"
+                        onClick={() => {
+                          setEventInfo(prev => ({
+                            ...prev,
+                            customMessage: (prev.customMessage || "") + (prev.customMessage ? " " : "") + item.tag
+                          }));
+                          setUserEditedMessage(true);
+                        }}
+                        className="px-2 py-1 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 text-xs rounded-md font-mono font-medium transition-colors border border-indigo-200"
+                        title={`Clique para inserir ${item.tag}`}
+                      >
+                        {item.label} <span className="opacity-60 text-[10px]">({item.tag})</span>
+                      </button>
+                    ))}
+                  </div>
+
                   <textarea
                     value={eventInfo.customMessage || ""}
                     onChange={(e) => {
                       setEventInfo({ ...eventInfo, customMessage: e.target.value });
                       setUserEditedMessage(true); // Para de auto-atualizar após edição manual
                     }}
-                    className="input-elegant min-h-[300px] border-2 border-indigo-200 focus:border-indigo-500 bg-indigo-50/30"
+                    className="input-elegant min-h-[220px] border-2 border-indigo-200 focus:border-indigo-500 bg-indigo-50/30"
                     placeholder="A mensagem final aparecerá aqui..."
                   />
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
@@ -2111,12 +2160,24 @@ Te esperamos lá! 🔥`;
                       type="button"
                       onClick={() => {
                         setUserEditedMessage(false); // Volta ao modo automático
-                        toast.success("Mensagem voltará a se atualizar automaticamente!");
+                        const autoMsg = defaultWhatsAppTemplate(eventInfo);
+                        setEventInfo(prev => ({ ...prev, customMessage: autoMsg }));
+                        toast.success("Mensagem restaurada para o padrão automático!");
                       }}
-                      style={{ fontSize: '0.7rem', color: '#6366f1', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
+                      style={{ fontSize: '0.75rem', color: '#6366f1', textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none' }}
                     >
                       Restaurar padrão automático
                     </button>
+                  </div>
+
+                  {/* Live Preview Box */}
+                  <div className="mt-4 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl shadow-sm">
+                    <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                      <span>💬</span> Pré-visualização para um participante (Exemplo: "Maria"):
+                    </p>
+                    <div className="text-sm text-gray-800 whitespace-pre-line font-sans bg-white p-3.5 rounded-lg border border-emerald-100 shadow-inner">
+                      {formatWhatsAppMessage(eventInfo.customMessage, eventInfo, "Maria")}
+                    </div>
                   </div>
                 </div>
 
@@ -2229,18 +2290,7 @@ Te esperamos lá! 🔥`;
                           .map((p, index) => {
                             const displayNum = filtered.length - index;
                             const buildMessage = () => {
-                              if (eventInfo.customMessage && eventInfo.customMessage.trim() !== "") {
-                                let customMsg = eventInfo.customMessage;
-                                customMsg = customMsg.replace(/{nome}/g, (p.name || '').split(' ')[0]);
-                                customMsg = customMsg.replace(/{proximo}/g, eventInfo.location);
-                                customMsg = customMsg.replace(/{premios}/g, eventInfo.prizesList);
-                                customMsg = customMsg.replace(/{resumo}/g, eventInfo.prevSummary);
-                                customMsg = customMsg.replace(/{desafio}/g, eventInfo.nextChallenge);
-                                customMsg = customMsg.replace(/{pontos}/g, eventInfo.tonightPoints);
-                                customMsg = customMsg.replace(/{local}/g, eventInfo.location);
-                                return customMsg;
-                              }
-                              return `Somos do Projeto *${eventInfo.projectName}*! ✨\n\nOi *${(p.name || '').split(' ')[0]}*! Passando pra te atualizar e te lembrar da nossa próxima missão! 🚀\n\n📝 *Resumo:* ${eventInfo.prevSummary}\n\nLembre-se que você pode ganhar prêmios incríveis com as pontuações acumuladas! 🎁\n\n*Prêmios como:*\n${eventInfo.prizesList}\n\n🎯 *O desafio de hoje é:*\n${eventInfo.nextChallenge}\n\n🏆 *Pontos hoje:*\n${eventInfo.tonightPoints}\n\n📍 *Nos encontramos em:*\n${eventInfo.location}\n\nTe esperamos lá! 🔥`;
+                              return formatWhatsAppMessage(eventInfo.customMessage, eventInfo, p.name);
                             };
                             const msg = buildMessage();
                             const rawPhone = (p.phone || '').replace(/\D/g, '');
@@ -2527,18 +2577,7 @@ Te esperamos lá! 🔥`;
                           .map((p, index) => {
                             const displayNum = filtered.length - index;
                             const buildMessage = () => {
-                              if (eventInfo.customMessage && eventInfo.customMessage.trim() !== "") {
-                                let customMsg = eventInfo.customMessage;
-                                customMsg = customMsg.replace(/{nome}/g, (p.name || '').split(' ')[0]);
-                                customMsg = customMsg.replace(/{proximo}/g, eventInfo.location);
-                                customMsg = customMsg.replace(/{premios}/g, eventInfo.prizesList);
-                                customMsg = customMsg.replace(/{resumo}/g, eventInfo.prevSummary);
-                                customMsg = customMsg.replace(/{desafio}/g, eventInfo.nextChallenge);
-                                customMsg = customMsg.replace(/{pontos}/g, eventInfo.tonightPoints);
-                                customMsg = customMsg.replace(/{local}/g, eventInfo.location);
-                                return customMsg;
-                              }
-                              return `Somos do Projeto *${eventInfo.projectName}*! ✨\n\nOi *${(p.name || '').split(' ')[0]}*! Ficamos muito felizes com sua presença ontem! 😍\n\n📝 *Resumo:* ${eventInfo.prevSummary}\n\nLembre-se que você pode ganhar prêmios incríveis! 🎁\n\n*Prêmios como:*\n${eventInfo.prizesList}\n\n🎯 *O desafio de hoje é:*\n${eventInfo.nextChallenge}\n\n🏆 *Pontos hoje:*\n${eventInfo.tonightPoints}\n\n📍 *Nos encontramos em:*\n${eventInfo.location}\n\nTe esperamos lá para mais uma vitória! 🔥`;
+                              return formatWhatsAppMessage(eventInfo.customMessage, eventInfo, p.name);
                             };
                             const msg = buildMessage();
                             const rawPhone = (p.phone || '').replace(/\D/g, '');

@@ -51,11 +51,7 @@ export async function POST(req: NextRequest) {
     // Get attendance points config
     const settings = await db.select().from(eventSettings).where(eq(eventSettings.id, 1)).limit(1);
     
-    // Regra nova: Só adiciona os 50 pontos a partir do dia 05/04/2026
-    const limitDate = new Date("2026-04-05T00:00:00-03:00"); // 5 de Abril de 2026 BRT
-    const isEligibleForPoints = recordDate.getTime() >= limitDate.getTime();
-    
-    const pointsToGiveStr = (addPoints !== false && isEligibleForPoints) ? (settings[0]?.attPoints || "50") : "0";
+    const pointsToGiveStr = (addPoints !== false) ? (settings[0]?.attPoints || "50") : "0";
     const pointsToGive = parseFloat(pointsToGiveStr);
 
     // Transaction for points if > 0
