@@ -223,8 +223,9 @@ export default function VolunteerScanner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setSuccessDialog({ show: true, message: data.message });
-      resetScan();
+      toast.success(data.message || "Presença registrada!");
+      // Recarrega os dados do cartão para atualizar saldo (sem limpar a tela)
+      handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
     } catch (error: any) {
       toast.error(error.message || "Erro ao registrar presença");
     } finally {
