@@ -280,7 +280,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (res.ok && data.eventInfo) {
         const loadedMsg = data.eventInfo.customMessage || "";
-        setEventInfo({
+        const loadedInfo = {
           projectName: data.eventInfo.projectName || "Viva Feliz",
           location: data.eventInfo.location || "",
           prevSummary: data.eventInfo.prevSummary || "",
@@ -291,9 +291,20 @@ export default function AdminDashboard() {
           customMessage: loadedMsg,
           visibleTabs: data.eventInfo.visibleTabs || "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
           auctionEnabled: data.eventInfo.auctionEnabled || 0
-        });
-        if (loadedMsg.trim() !== "") {
+        };
+
+        // Verifica se a mensagem salva usa o sistema de tags
+        const hasTags = loadedMsg && /{(nome|projeto|resumo|premios|desafio|pontos|local)}/.test(loadedMsg);
+
+        if (loadedMsg.trim() !== "" && hasTags) {
+          // Mensagem com tags: preservar como está e marcar como editada pelo usuário
+          setEventInfo(loadedInfo);
           setUserEditedMessage(true);
+        } else {
+          // Mensagem vazia ou formato antigo (sem tags): regenerar com template novo
+          loadedInfo.customMessage = defaultWhatsAppTemplate(loadedInfo);
+          setEventInfo(loadedInfo);
+          setUserEditedMessage(false);
         }
       }
     } catch { }
@@ -427,7 +438,7 @@ export default function AdminDashboard() {
   };
 
   // Template centralizado para garantir consistência
-  const defaultWhatsAppTemplate = (info: any) => `Somos do Projeto *${info.projectName || 'Viva Feliz'}*! ✨
+  const defaultWhatsAppTemplate = (info: any) => `Somos do Projeto *{projeto}*! ✨
 
 Oi *{nome}*!
 
