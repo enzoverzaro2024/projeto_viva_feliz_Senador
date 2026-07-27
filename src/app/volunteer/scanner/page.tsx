@@ -123,9 +123,7 @@ export default function VolunteerScanner() {
     setWantScanner(false);
   };
 
-  const handleQRCodeScan = async (cardId: string) => {
-    if (scannedCard) return;
-
+  const fetchParticipantData = async (cardId: string, showToast = false) => {
     try {
       setIsLoading(true);
       const res = await fetch(`/api/volunteer/scan?cardId=${encodeURIComponent(cardId)}`);
@@ -135,7 +133,9 @@ export default function VolunteerScanner() {
       setScannedCard(data.participant);
       setScannedTransactions(data.transactions || []);
       stopScanner();
-      toast.success("Cartão escaneado com sucesso!");
+      if (showToast) {
+        toast.success("Cartão escaneado com sucesso!");
+      }
     } catch (error: any) {
       toast.error(error.message || "Erro ao escanear cartão");
     } finally {
@@ -143,12 +143,17 @@ export default function VolunteerScanner() {
     }
   };
 
+  const handleQRCodeScan = async (cardId: string) => {
+    if (scannedCard) return;
+    await fetchParticipantData(cardId, true);
+  };
+
   const handleManualScan = async () => {
     if (!manualCardId.trim()) {
       toast.error("Digite um ID de cartão válido");
       return;
     }
-    await handleQRCodeScan(manualCardId.trim());
+    await fetchParticipantData(manualCardId.trim(), true);
     setManualCardId("");
   };
 
@@ -172,16 +177,11 @@ export default function VolunteerScanner() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setSuccessDialog({ 
-        show: true, 
-        message: `${parseFloat(amountToSubmit).toFixed(0)} pontos processados com sucesso!`,
-        balance: data.newBalance
-      });
+      toast.success(`${parseFloat(amountToSubmit).toFixed(0)} pontos lançados!`);
       setConfirmDialog({ show: false, amount: "" });
-      if (scannedCard) {
-        handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
-      }
-      resetScan();
+      setAmount("");
+      setDescription("");
+      await fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
     } catch (error: any) {
       toast.error(error.message || "Erro ao lançar pontos");
     } finally {
@@ -224,8 +224,8 @@ export default function VolunteerScanner() {
       if (!res.ok) throw new Error(data.error);
 
       toast.success(data.message || "Presença registrada!");
-      // Recarrega os dados do cartão para atualizar saldo (sem limpar a tela)
-      handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
+      // Recarrega os dados do participante (saldo atualizado + histórico) MANTENDO O CARTÃO NA TELA
+      await fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
     } catch (error: any) {
       toast.error(error.message || "Erro ao registrar presença");
     } finally {
