@@ -3,6 +3,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Heart, LogOut, Loader2, X, Check, Camera } from "lucide-react";
+// NOTE: successDialog modal was removed — all feedback now uses toast
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
@@ -237,7 +238,6 @@ export default function ScannerClient() {
 
   const [debitAmount, setDebitAmount] = useState("");
   const [auctionItem, setAuctionItem] = useState("");
-  const [lastBalance, setLastBalance] = useState<string | null>(null);
 
   const handleDebit = async () => {
     if (!scannedCard || !debitAmount) {
@@ -272,12 +272,8 @@ export default function ScannerClient() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      setLastBalance(data.newBalance);
-      setSuccessDialog({ 
-        show: true, 
-        message: `Débito realizado! Saldo atual de ${scannedCard.name.split(' ')[0]}:`,
-        balance: data.newBalance 
-      });
+      const saldoAtual = data.newBalance ? parseFloat(data.newBalance).toFixed(0) : '?';
+      toast.success(`Débito de ${val} pts realizado! Saldo de ${scannedCard.name.split(' ')[0]}: ${saldoAtual} pts`);
       if (scannedCard) {
         handleQRCodeScan(scannedCard.cardNumber || scannedCard.id.toString());
       }
@@ -292,42 +288,10 @@ export default function ScannerClient() {
   };
 
   const [confirmDialog, setConfirmDialog] = useState({ show: false, amount: "" });
-  const [successDialog, setSuccessDialog] = useState<{show: boolean, message: string, balance?: string}>({ show: false, message: "" });
 
   return (
     <div className="min-h-screen bg-gradient-main">
-      {/* Success Modal Overlay */}
-      {successDialog.show && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-          <div className="bg-white rounded-[2.5rem] p-8 max-w-sm w-full text-center shadow-2xl animate-in zoom-in-95 duration-200 border-4 border-green-500">
-            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <Check className="w-12 h-12 text-green-600" />
-            </div>
-            <h3 className="text-xl font-bold text-gray-900 mb-2">{successDialog.message}</h3>
-            
-            {successDialog.balance && (
-              <div className="bg-slate-50 rounded-2xl p-6 mb-8 border-2 border-slate-100">
-                <p className="text-5xl font-black text-indigo-600 font-inter">
-                  {parseFloat(successDialog.balance).toFixed(0)}
-                  <span className="text-xl ml-1 text-indigo-400">pts</span>
-                </p>
-              </div>
-            )}
 
-            {!successDialog.balance && <p className="text-lg text-gray-600 mb-8 font-medium">{successDialog.message}</p>}
-            
-            <button 
-              onClick={() => {
-                setSuccessDialog({ show: false, message: "" });
-                setLastBalance(null);
-              }} 
-              className="w-full bg-slate-900 hover:bg-black text-white font-bold py-5 rounded-2xl text-xl shadow-lg transition-all active:scale-95"
-            >
-              FECHAR
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
