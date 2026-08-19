@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Heart, LogOut, Zap, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { formatGuarani } from "@/lib/utils";
 import { toast } from "sonner";
 
 interface TransactionData {
@@ -49,8 +50,9 @@ export default function DashboardClient() {
     return null;
   }
 
-  const totalCredits = transactions.reduce(
-    (sum, txn) => sum + parseFloat(txn.amount),
+  // Vendas reais (débitos amount < 0)
+  const totalSales = transactions.reduce(
+    (sum, txn) => sum + (parseFloat(txn.amount) < 0 ? Math.abs(parseFloat(txn.amount)) : 0),
     0
   );
 
@@ -61,12 +63,12 @@ export default function DashboardClient() {
         <div className="container p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-8 h-8 text-accent fill-accent" />
-            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">Dashboard</h1>
+            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">Painel da Banca</h1>
           </div>
           <div className="flex gap-2">
             <button onClick={() => router.push("/volunteer/scanner")} className="btn-primary flex items-center gap-2 p-2 px-3 md:px-4 text-sm">
               <Zap className="w-4 h-4" />
-              <span className="hidden sm:inline">Scanner</span>
+              <span className="hidden sm:inline">Scanner de Vendas</span>
             </button>
             <button onClick={handleLogout} className="btn-secondary p-2 px-3 md:px-4" aria-label="Sair">
               <LogOut className="w-4 h-4" />
@@ -82,13 +84,13 @@ export default function DashboardClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div className="card-elegant animate-fade-in bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 p-6 shadow-sm">
               <div className="flex flex-col h-full justify-between">
-                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total de Pontos Adicionados</p>
+                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total em Vendas da Banca (G$)</p>
                 <div>
-                  <p className="text-4xl md:text-5xl font-bold text-accent font-inter tracking-tight">
-                    {totalCredits.toFixed(0)} <span className="text-2xl ml-1 opacity-80">pts</span>
+                  <p className="text-3xl md:text-4xl font-bold text-accent font-inter tracking-tight">
+                    {formatGuarani(totalSales)}
                   </p>
                   <p className="text-sm text-foreground/80 mt-2 font-medium bg-white/50 w-fit px-2 py-1 rounded">
-                    {transactions.length} transações
+                    {transactions.length} operações registradas
                   </p>
                 </div>
               </div>
@@ -100,7 +102,7 @@ export default function DashboardClient() {
                   <Heart className="w-8 h-8 text-accent shrink-0" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Conta de Voluntário</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Banca / Operador</p>
                   <p className="text-2xl md:text-3xl font-playfair font-bold mb-1">{user.name}</p>
                   <p className="text-sm md:text-base text-muted-foreground break-all">{user.email}</p>
                 </div>
@@ -111,7 +113,7 @@ export default function DashboardClient() {
           {/* Transactions Table */}
           <div className="card-elegant animate-fade-in delay-200 p-0 overflow-hidden shadow-sm">
             <div className="p-6 border-b border-border bg-white/50">
-              <h2 className="text-xl md:text-2xl font-playfair font-bold">Histórico de Transações</h2>
+              <h2 className="text-xl md:text-2xl font-playfair font-bold">Histórico de Operações da Banca</h2>
             </div>
 
             {loading ? (
@@ -123,7 +125,7 @@ export default function DashboardClient() {
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-muted/30 text-muted-foreground text-xs uppercase tracking-wider">
-                      <th className="px-6 py-4 font-semibold whitespace-nowrap">ID Transação</th>
+                      <th className="px-6 py-4 font-semibold whitespace-nowrap">ID</th>
                       <th className="px-6 py-4 font-semibold whitespace-nowrap">Participante</th>
                       <th className="px-6 py-4 font-semibold whitespace-nowrap">Valor</th>
                       <th className="px-6 py-4 font-semibold">Descrição</th>
@@ -131,33 +133,36 @@ export default function DashboardClient() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
-                    {transactions.map((txn) => (
-                      <tr key={txn.id} className="hover:bg-muted/20 transition-colors">
-                        <td className="px-6 py-4 text-sm font-mono text-muted-foreground whitespace-nowrap">
-                          #{txn.id}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
-                          ID: {txn.participantId}
-                        </td>
-                        <td className="px-6 py-4 text-sm font-bold text-accent whitespace-nowrap">
-                          + {parseFloat(txn.amount).toFixed(0)} pts
-                        </td>
-                        <td className="px-6 py-4 text-sm text-foreground/80 min-w-[200px]">
-                          {txn.description || "-"}
-                        </td>
-                        <td className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
-                          {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
-                            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-                          })}
-                        </td>
-                      </tr>
-                    ))}
+                    {transactions.map((txn) => {
+                      const amountVal = parseFloat(txn.amount);
+                      return (
+                        <tr key={txn.id} className="hover:bg-muted/20 transition-colors">
+                          <td className="px-6 py-4 text-sm font-mono text-muted-foreground whitespace-nowrap">
+                            #{txn.id}
+                          </td>
+                          <td className="px-6 py-4 text-sm font-medium whitespace-nowrap">
+                            ID: {txn.participantId}
+                          </td>
+                          <td className={`px-6 py-4 text-sm font-bold whitespace-nowrap ${amountVal < 0 ? 'text-rose-600' : 'text-green-600'}`}>
+                            {amountVal > 0 ? '+' : ''}{formatGuarani(txn.amount)}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-foreground/80 min-w-[200px]">
+                            {txn.description || "-"}
+                          </td>
+                          <td className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
+                            {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
+                              day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                            })}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
             ) : (
               <div className="text-center py-12 bg-white/50">
-                <p className="text-muted-foreground">Nenhuma transação registrada ainda.</p>
+                <p className="text-muted-foreground">Nenhuma operação realizada ainda.</p>
               </div>
             )}
           </div>

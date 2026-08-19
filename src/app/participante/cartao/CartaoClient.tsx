@@ -7,6 +7,8 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { QRCodeCanvas } from "qrcode.react";
 
+import { formatGuarani } from "@/lib/utils";
+
 interface ParticipantData {
   id: number;
   name: string;
@@ -116,7 +118,7 @@ export default function CartaoClient() {
           <div className="container p-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Heart className="w-8 h-8 text-accent fill-accent" />
-              <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair">Viva Feliz</h1>
+              <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair">Cartão de Crédito</h1>
             </div>
             <button onClick={handleLogout} className="btn-secondary px-4 py-2 text-sm">Sair</button>
           </div>
@@ -134,8 +136,6 @@ export default function CartaoClient() {
     );
   }
 
-  const balance = parseFloat(participant.currentBalance);
-
   return (
     <div className="min-h-screen bg-gradient-main">
       {/* Header */}
@@ -143,12 +143,12 @@ export default function CartaoClient() {
         <div className="container p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-8 h-8 text-accent fill-accent" />
-            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair">Viva Feliz</h1>
+            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair">Meu Cartão</h1>
           </div>
           <div className="flex gap-2">
             <button onClick={toggleHistory} className="btn-secondary flex items-center gap-2 p-2 px-3 md:px-4 text-sm">
               <History className="w-4 h-4" />
-              <span className="hidden sm:inline">Histórico</span>
+              <span className="hidden sm:inline">Extrato</span>
             </button>
             <button onClick={handleLogout} className="btn-secondary p-2 px-3 md:px-4" aria-label="Sair">
               <LogOut className="w-4 h-4" />
@@ -169,37 +169,20 @@ export default function CartaoClient() {
               </div>
               <h3 className="text-xl font-bold mb-4 flex items-center gap-2">
                 <span className="bg-white/20 p-1.5 rounded-lg">✨</span> 
-                Informativo: {eventInfo.projectName}
+                Informativo: {eventInfo.projectName || "Feira de Vendas"}
               </h3>
               
               {eventInfo.prevSummary && (
                 <div className="mb-4 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/5">
-                  <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">📝 Resumo da Última Noite</p>
+                  <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">📝 Resumo</p>
                   <p className="text-sm leading-relaxed">{eventInfo.prevSummary}</p>
                 </div>
               )}
 
               {eventInfo.prizesList && (
                 <div className="mb-4 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/5">
-                  <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">🎁 Prêmios em Jogo</p>
+                  <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">🎁 Atrações & Prêmios</p>
                   <p className="text-sm leading-relaxed whitespace-pre-line">{eventInfo.prizesList}</p>
-                </div>
-              )}
-
-              {eventInfo.tonightPoints && (
-                <div className="mb-4 bg-white/10 p-3 rounded-xl backdrop-blur-sm border border-white/5">
-                  <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">🏆 Regras de Pontuação</p>
-                  <p className="text-sm font-medium leading-relaxed whitespace-pre-line">{eventInfo.tonightPoints}</p>
-                </div>
-              )}
-
-              {eventInfo.nextChallenge && (
-                <div className="bg-amber-400 text-amber-950 p-4 rounded-xl shadow-inner flex items-start gap-3">
-                  <span className="text-2xl">🎯</span>
-                  <div>
-                    <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">Desafio de Hoje</p>
-                    <p className="font-bold leading-tight whitespace-pre-line">{eventInfo.nextChallenge}</p>
-                  </div>
                 </div>
               )}
             </div>
@@ -208,8 +191,8 @@ export default function CartaoClient() {
           {/* Card Display */}
           <div className="card-elegant animate-fade-in bg-gradient-to-br from-card to-indigo-50/30 border-indigo-100 p-6 md:p-8">
             <div className="text-center mb-8">
-              <h2 className="text-2xl md:text-3xl font-playfair font-bold mb-2">Seu Cartão de Pontos</h2>
-              <p className="text-muted-foreground text-sm md:text-base">Apresente este QR Code para validar suas missões</p>
+              <h2 className="text-2xl md:text-3xl font-playfair font-bold mb-2">Cartão de Crédito Digital</h2>
+              <p className="text-muted-foreground text-sm md:text-base">Apresente este QR Code nas bancas para realizar suas compras</p>
             </div>
 
             {/* QR Code */}
@@ -222,9 +205,9 @@ export default function CartaoClient() {
 
             {/* Balance Display */}
             <div className="bg-gradient-to-br from-indigo-50 to-indigo-50/50 rounded-xl p-5 mb-6 border border-indigo-100 text-center shadow-sm">
-              <p className="text-sm font-medium text-muted-foreground mb-1">Pontuação Total</p>
+              <p className="text-sm font-medium text-muted-foreground mb-1">Saldo Disponível no Cartão</p>
               <p className="text-4xl md:text-5xl font-bold text-accent font-inter tracking-tight">
-                {balance.toFixed(0)} pts
+                {formatGuarani(participant.currentBalance)}
               </p>
             </div>
 
@@ -232,7 +215,7 @@ export default function CartaoClient() {
             <div className="bg-white/50 rounded-xl p-5 mb-6 border border-border backdrop-blur-sm">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Nome</p>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">Titular</p>
                   <p className="font-semibold text-base text-foreground break-words">{participant.name}</p>
                 </div>
                 <div>
@@ -260,7 +243,7 @@ export default function CartaoClient() {
           {/* History Section */}
           {showHistory && (
             <div className="card-elegant animate-fade-in p-6">
-              <h3 className="text-xl md:text-2xl font-playfair font-bold mb-6">Histórico de Missões</h3>
+              <h3 className="text-xl md:text-2xl font-playfair font-bold mb-6">Extrato de Compras e Recargas</h3>
 
               {historyLoading ? (
                 <div className="flex justify-center py-8">
@@ -268,27 +251,30 @@ export default function CartaoClient() {
                 </div>
               ) : transactions.length > 0 ? (
                 <div className="flex flex-col gap-3">
-                  {transactions.map((txn) => (
-                    <div key={txn.id} className="flex items-center justify-between p-4 bg-white/50 rounded-xl border border-border hover:border-indigo-200 transition-colors shadow-sm">
-                      <div className="flex-1 min-w-0 pr-4">
-                        <p className="font-semibold text-sm md:text-base text-foreground truncate mb-1">
-                          {txn.description || "Missão Concluída"}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
-                            day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-                          })}
+                  {transactions.map((txn) => {
+                    const amountVal = parseFloat(txn.amount);
+                    return (
+                      <div key={txn.id} className="flex items-center justify-between p-4 bg-white/50 rounded-xl border border-border hover:border-indigo-200 transition-colors shadow-sm">
+                        <div className="flex-1 min-w-0 pr-4">
+                          <p className="font-semibold text-sm md:text-base text-foreground truncate mb-1">
+                            {txn.description || (amountVal > 0 ? "Recarga Tesouraria" : "Compra na Banca")}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
+                              day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                            })}
+                          </p>
+                        </div>
+                        <p className={`text-base md:text-lg font-bold ${amountVal > 0 ? 'text-green-600' : 'text-rose-600'} shrink-0`}>
+                          {amountVal > 0 ? '+' : ''}{formatGuarani(txn.amount)}
                         </p>
                       </div>
-                      <p className="text-lg md:text-xl font-bold text-accent shrink-0">
-                        + {parseFloat(txn.amount).toFixed(0)} pts
-                      </p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-center py-8 bg-muted/30 rounded-xl border border-dashed border-border">
-                  <p className="text-muted-foreground text-sm">Nenhuma transação registrada ainda.</p>
+                  <p className="text-muted-foreground text-sm">Nenhuma movimentação no extrato ainda.</p>
                 </div>
               )}
             </div>

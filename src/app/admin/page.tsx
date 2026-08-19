@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Heart, LogOut, Loader2, Trash2, Download, Search, Plus, QrCode, Pencil, Check, X, Users, Shield, Key, UserPlus, CreditCard, Printer, Calendar, Save, Eye, RefreshCw } from "lucide-react";
 import { useEffect, useState, useRef, useMemo } from "react";
 import { toast } from "sonner";
+import { formatGuarani } from "@/lib/utils";
 import { QRCodeCanvas } from "qrcode.react";
 import Papa from "papaparse";
 
@@ -33,7 +34,7 @@ interface UserData {
   createdAt: string;
 }
 
-type TabType = "aprovacoes" | "participantes" | "pontos" | "ranking" | "usuarios" | "cartoes" | "gestao_noite" | "resgate" | "reforco" | "presenca" | "transacoes";
+type TabType = "aprovacoes" | "participantes" | "pontos" | "ranking" | "usuarios" | "cartoes" | "gestao_noite" | "resgate" | "reforco" | "presenca" | "transacoes" | "bancas";
 
 export default function AdminDashboard() {
   const { user, logout, loading: loadingAuth } = useAuth();
@@ -43,7 +44,7 @@ export default function AdminDashboard() {
   const SUPER_ADMIN_EMAIL = "enzo@nb.com";
   const isSuperAdmin = user?.email?.toLowerCase() === SUPER_ADMIN_EMAIL.toLowerCase();
 
-  const [activeTab, setActiveTab] = useState<TabType>("ranking");
+  const [activeTab, setActiveTab] = useState<TabType>("bancas");
   const [participants, setParticipants] = useState<ParticipantData[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -172,6 +173,47 @@ export default function AdminDashboard() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [transLoading, setTransLoading] = useState(false);
   const [transactionSearch, setTransactionSearch] = useState("");
+
+  // Sales Report state
+  const [salesReport, setSalesReport] = useState<{
+    summary: { totalTreasury: number; totalSales: number; totalRemaining: number };
+    bancas: Array<{ volunteerId: number; name: string; email: string; totalSales: number; salesCount: number; totalCreditsAdded: number }>;
+  } | null>(null);
+  const [salesReportLoading, setSalesReportLoading] = useState(false);
+
+  const fetchSalesReport = async () => {
+    setSalesReportLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports/sales");
+      const data = await res.json();
+      if (res.ok) setSalesReport(data);
+      else toast.error("Erro ao carregar relatório");
+    } catch {
+      toast.error("Erro de conexão ao carregar relatório");
+    } finally {
+      setSalesReportLoading(false);
+    }
+  };
+
+  const exportSalesCSV = () => {
+    if (!salesReport || !salesReport.bancas) return;
+    const data = salesReport.bancas.map(b => ({
+      "Nome da Banca / Operador": b.name,
+      "Email": b.email,
+      "Vendas Realizadas": b.salesCount,
+      "Total Vendido (G$)": b.totalSales,
+      "Total Recarregado (G$)": b.totalCreditsAdded
+    }));
+    const csv = Papa.unparse(data);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_vendas_feira_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // States for Card Transfer
   const [transferParticipant, setTransferParticipant] = useState<ParticipantData | null>(null);
@@ -1225,16 +1267,12 @@ Te esperamos lá! 🔥`;
   if (!user || (user.role !== "admin" && !isSuperAdmin)) return null;
 
   const allTabs: { key: TabType; label: string; count?: number }[] = [
-    { key: "cartoes", label: "🏷️ Cartões" },
-    { key: "aprovacoes", label: "Aprovações", count: isMounted ? pendingUsers.length : 0 },
+    { key: "bancas", label: "📊 Relatório por Banca" },
     { key: "participantes", label: "Participantes", count: isMounted ? participants.length : 0 },
-    { key: "presenca", label: "📍 Lista de Presença" },
-    { key: "gestao_noite", label: "🗓️ Info da Noite" },
-    { key: "resgate", label: "📩 Resgate (Faltaram)", count: isMounted ? absentees.length : 0 },
-    { key: "reforco", label: "✨ Reforço (Compareceram)", count: isMounted ? attendees.length : 0 },
-    { key: "pontos", label: "Lançar Pontos" },
-    { key: "transacoes", label: "📊 Histórico" },
-    { key: "ranking", label: "Ranking" },
+    { key: "pontos", label: "💵 Tesouraria (Recarga)" },
+    { key: "cartoes", label: "🏷️ Cartões" },
+    { key: "transacoes", label: "📊 Extrato Geral" },
+    { key: "aprovacoes", label: "Aprovações", count: isMounted ? pendingUsers.length : 0 },
     { key: "usuarios", label: "Administradores", count: isMounted ? allUsers.length : 0 },
   ];
 
@@ -1322,6 +1360,99 @@ Te esperamos lá! 🔥`;
             </div>
           )}
 
+
+          {/* ===== Tab: Relatório de Vendas (Bancas) ===== */}
+          {activeTab === "bancas" && (
+            <div className="animate-fade-in space-y-6">
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem', marginBottom: '1.5rem' }}>
+                <div>
+                  <h2 style={{ fontSize: '1.4rem', fontFamily: 'Inter, sans-serif', fontWeight: 700, margin: 0 }}>📊 Relatório de Vendas da Feira</h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginTop: '0.2rem' }}>Consolidado de vendas por banca/voluntário e movimentações da Tesouraria</p>
+                </div>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <button onClick={fetchSalesReport} disabled={salesReportLoading} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
+                    {salesReportLoading ? <Loader2 className="animate-spin" size={14} /> : "Atualizar Dados"}
+                  </button>
+                  <button onClick={exportSalesCSV} disabled={!salesReport?.bancas?.length} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem', display: 'flex', gap: '0.4rem', alignItems: 'center' }}>
+                    <Download size={14} /> Exportar Planilha (CSV)
+                  </button>
+                </div>
+              </div>
+
+              {salesReportLoading ? (
+                <div style={{ display: 'flex', justifyContent: 'center', padding: '3rem' }}>
+                  <Loader2 className="animate-spin text-accent" size={32} />
+                </div>
+              ) : salesReport ? (
+                <>
+                  {/* Summary KPI Cards */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+                    <div className="card-elegant" style={{ background: 'linear-gradient(135deg, #ecfdf5 0%, #d1fae5 100%)', border: '1px solid #a7f3d0', padding: '1.25rem' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#065f46', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Recargas da Tesouraria</p>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#047857', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+                        {formatGuarani(salesReport.summary.totalTreasury)}
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#047857', marginTop: '0.25rem' }}>Total de crédito colocado nos cartões</p>
+                    </div>
+
+                    <div className="card-elegant" style={{ background: 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)', border: '1px solid #bfdbfe', padding: '1.25rem' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#1e40af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Vendas nas Bancas</p>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#1d4ed8', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+                        {formatGuarani(salesReport.summary.totalSales)}
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#1d4ed8', marginTop: '0.25rem' }}>Total debitado pelas bancas nas compras</p>
+                    </div>
+
+                    <div className="card-elegant" style={{ background: 'linear-gradient(135deg, #f5f3ff 0%, #ede9fe 100%)', border: '1px solid #ddd6fe', padding: '1.25rem' }}>
+                      <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#5b21b6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Saldo nos Cartões</p>
+                      <p style={{ fontSize: '1.8rem', fontWeight: 800, color: '#6d28d9', fontFamily: 'Inter, sans-serif', margin: 0 }}>
+                        {formatGuarani(salesReport.summary.totalRemaining)}
+                      </p>
+                      <p style={{ fontSize: '0.75rem', color: '#6d28d9', marginTop: '0.25rem' }}>Saldo total disponível nos cartões</p>
+                    </div>
+                  </div>
+
+                  {/* Table per Booth / Volunteer */}
+                  <div className="card-elegant" style={{ padding: 0, overflow: 'hidden' }}>
+                    <div style={{ padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
+                      <h3 style={{ fontSize: '1.1rem', fontWeight: 700, margin: 0 }}>Vendas Detalhadas por Banca / Voluntário</h3>
+                    </div>
+                    <div style={{ overflowX: 'auto', width: '100%' }}>
+                      <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
+                        <thead>
+                          <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)', textAlign: 'left' }}>
+                            <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem' }}>Banca / Operador</th>
+                            <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem' }}>Email / Login</th>
+                            <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', textAlign: 'center' }}>Qtd. Operações de Venda</th>
+                            <th style={{ padding: '0.8rem 1rem', fontSize: '0.85rem', textAlign: 'right' }}>Total Vendido (G$)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {salesReport.bancas.map((b) => (
+                            <tr key={b.volunteerId} style={{ borderBottom: '1px solid var(--border)' }}>
+                              <td style={{ padding: '0.8rem 1rem', fontWeight: 600 }}>{b.name}</td>
+                              <td style={{ padding: '0.8rem 1rem', color: 'var(--muted-foreground)', fontSize: '0.85rem' }}>{b.email}</td>
+                              <td style={{ padding: '0.8rem 1rem', textAlign: 'center', fontWeight: 700 }}>{b.salesCount} vendas</td>
+                              <td style={{ padding: '0.8rem 1rem', textAlign: 'right', fontWeight: 800, color: '#2563eb', fontSize: '1.05rem' }}>
+                                {formatGuarani(b.totalSales)}
+                              </td>
+                            </tr>
+                          ))}
+                          {salesReport.bancas.length === 0 && (
+                            <tr>
+                              <td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>
+                                Nenhuma venda registrada até o momento.
+                              </td>
+                            </tr>
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </>
+              ) : null}
+            </div>
+          )}
 
           {/* ===== Tab: Participantes ===== */}
           {activeTab === "participantes" && (

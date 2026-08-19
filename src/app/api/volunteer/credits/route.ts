@@ -30,8 +30,18 @@ export async function POST(req: NextRequest) {
     const amountRegex = /^-?\d+(\.\d{1,2})?$/;
     if (!amountRegex.test(amount)) {
       return NextResponse.json(
-        { error: "Pontuação inválida" },
+        { error: "Valor inválido" },
         { status: 400 }
+      );
+    }
+
+    const amountFloat = parseFloat(amount);
+
+    // Se for acréscimo de crédito (amount > 0) e o usuário não for Admin, bloquear
+    if (amountFloat > 0 && session.role !== "admin") {
+      return NextResponse.json(
+        { error: "Apenas a Tesouraria (Administrador) tem permissão para adicionar créditos ao cartão." },
+        { status: 403 }
       );
     }
 
@@ -56,7 +66,6 @@ export async function POST(req: NextRequest) {
 
     // Update participant balance
     const currentBalance = parseFloat(participant[0].currentBalance);
-    const amountFloat = parseFloat(amount);
     const newBalanceFloat = currentBalance + amountFloat;
 
     if (newBalanceFloat < 0) {
