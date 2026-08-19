@@ -229,7 +229,7 @@ h1, h2, h3, h4, h5, h6 {
   background: var(--background);
 }
 
-::webkit-scrollbar-thumb {
+::-webkit-scrollbar-thumb {
   background: #cbd5e1;
   border-radius: 10px;
   border: 2px solid var(--background);

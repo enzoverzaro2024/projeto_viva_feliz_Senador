@@ -1,5 +1,6 @@
 import postgres from 'postgres';
 import fs from 'fs';
+import path from 'path';
 import Papa from 'papaparse';
 import dotenv from 'dotenv';
 
@@ -14,7 +15,12 @@ async function fixNames() {
   }
 
   const sql = postgres(dbUrl);
-  const csvPath = 'c:/Users/enzoverzaro/Documents/ANTI-PROJETOS/CARTÃOCREDITO/Registros do Projeto Comunitário Viva Feliz.csv';
+  const candidatePaths = [
+    path.join(process.cwd(), 'Registros do Projeto Comunitário Viva Feliz.csv'),
+    path.join(process.cwd(), '..', 'Registros do Projeto Comunitário Viva Feliz.csv'),
+    path.join(process.cwd(), 'data', 'Registros do Projeto Comunitário Viva Feliz.csv'),
+  ];
+  const csvPath = candidatePaths.find(p => fs.existsSync(p)) || candidatePaths[0];
   
   try {
     console.log("Iniciando correção de dados...");

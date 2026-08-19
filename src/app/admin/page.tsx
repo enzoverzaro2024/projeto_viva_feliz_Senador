@@ -1382,7 +1382,7 @@ Te esperamos lá! 🔥`;
                           >
                             <option value="">Nenhum (atribuir depois)</option>
                             {unassignedCards.map(c => (
-                              <option key={c.id} value={c.cardNumber}>
+                              <option key={c.id} value={c.cardNumber || ''}>
                                 Cartão {c.cardNumber}
                               </option>
                             ))}
@@ -2741,7 +2741,7 @@ Te esperamos lá! 🔥`;
                       style={{ paddingLeft: '2.25rem', fontSize: '0.85rem' }}
                     />
                   </div>
-                  <button onClick={fetchParticipants} className="btn-secondary">Atualizar</button>
+                  <button onClick={() => fetchParticipants()} className="btn-secondary">Atualizar</button>
                 </div>
               </div>
 
