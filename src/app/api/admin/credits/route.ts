@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
       participantId,
       volunteerId: session.userId,
       amount,
-      description: description || "Pontos lançados pelo admin",
+      description: description || "Recarga em dinheiro na tesouraria",
     }).returning();
 
     // Update balance
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       success: true,
       newBalance,
-      message: `${parseFloat(amount).toFixed(0)} pontos adicionados com sucesso`,
+      message: `Recarga realizada com sucesso!`,
     });
   } catch (error: any) {
     console.error("Admin add credits error:", error);

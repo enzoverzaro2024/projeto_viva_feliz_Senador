@@ -35,7 +35,7 @@ export default function DashboardClient() {
       const data = await res.json();
       setTransactions(data.transactions || []);
     } catch {
-      toast.error("Erro ao carregar transações");
+      toast.error("Error al cargar las transacciones");
     } finally {
       setLoading(false);
     }
@@ -63,14 +63,14 @@ export default function DashboardClient() {
         <div className="container p-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Heart className="w-8 h-8 text-accent fill-accent" />
-            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">Painel da Banca</h1>
+            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">Panel del Puesto</h1>
           </div>
           <div className="flex gap-2">
             <button onClick={() => router.push("/volunteer/scanner")} className="btn-primary flex items-center gap-2 p-2 px-3 md:px-4 text-sm">
               <Zap className="w-4 h-4" />
-              <span className="hidden sm:inline">Scanner de Vendas</span>
+              <span className="hidden sm:inline">Escáner de Ventas</span>
             </button>
-            <button onClick={handleLogout} className="btn-secondary p-2 px-3 md:px-4" aria-label="Sair">
+            <button onClick={handleLogout} className="btn-secondary p-2 px-3 md:px-4" aria-label="Cerrar Sesión">
               <LogOut className="w-4 h-4" />
             </button>
           </div>
@@ -84,13 +84,13 @@ export default function DashboardClient() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 mb-8">
             <div className="card-elegant animate-fade-in bg-gradient-to-br from-indigo-50/50 to-indigo-100/30 border-indigo-100 p-6 shadow-sm">
               <div className="flex flex-col h-full justify-between">
-                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total em Vendas da Banca (G$)</p>
+                <p className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">Total en Ventas del Puesto (G$)</p>
                 <div>
                   <p className="text-3xl md:text-4xl font-bold text-accent font-inter tracking-tight">
                     {formatGuarani(totalSales)}
                   </p>
                   <p className="text-sm text-foreground/80 mt-2 font-medium bg-white/50 w-fit px-2 py-1 rounded">
-                    {transactions.length} operações registradas
+                    {transactions.length} operaciones registradas
                   </p>
                 </div>
               </div>
@@ -102,7 +102,7 @@ export default function DashboardClient() {
                   <Heart className="w-8 h-8 text-accent shrink-0" />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Banca / Operador</p>
+                  <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Puesto / Operador</p>
                   <p className="text-2xl md:text-3xl font-playfair font-bold mb-1">{user.name}</p>
                   <p className="text-sm md:text-base text-muted-foreground break-all">{user.email}</p>
                 </div>
@@ -113,7 +113,7 @@ export default function DashboardClient() {
           {/* Transactions Table */}
           <div className="card-elegant animate-fade-in delay-200 p-0 overflow-hidden shadow-sm">
             <div className="p-6 border-b border-border bg-white/50">
-              <h2 className="text-xl md:text-2xl font-playfair font-bold">Histórico de Operações da Banca</h2>
+              <h2 className="text-xl md:text-2xl font-playfair font-bold">Historial de Operaciones del Puesto</h2>
             </div>
 
             {loading ? (
@@ -126,10 +126,10 @@ export default function DashboardClient() {
                   <thead>
                     <tr className="bg-muted/30 text-muted-foreground text-xs uppercase tracking-wider">
                       <th className="px-6 py-4 font-semibold whitespace-nowrap">ID</th>
-                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Participante</th>
-                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Valor</th>
-                      <th className="px-6 py-4 font-semibold">Descrição</th>
-                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Data</th>
+                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Comprador / Tarjeta</th>
+                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Monto</th>
+                      <th className="px-6 py-4 font-semibold">Descripción</th>
+                      <th className="px-6 py-4 font-semibold whitespace-nowrap">Fecha</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-border">
@@ -150,7 +150,7 @@ export default function DashboardClient() {
                             {txn.description || "-"}
                           </td>
                           <td className="px-6 py-4 text-sm text-muted-foreground whitespace-nowrap">
-                            {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
+                            {new Date(txn.createdAt).toLocaleDateString("es-ES", {
                               day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
                             })}
                           </td>
@@ -162,7 +162,7 @@ export default function DashboardClient() {
               </div>
             ) : (
               <div className="text-center py-12 bg-white/50">
-                <p className="text-muted-foreground">Nenhuma operação realizada ainda.</p>
+                <p className="text-muted-foreground">No hay operaciones registradas aún.</p>
               </div>
             )}
           </div>

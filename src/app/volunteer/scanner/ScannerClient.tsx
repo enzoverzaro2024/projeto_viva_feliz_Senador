@@ -3,7 +3,6 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Heart, LogOut, Loader2, X, Check, Camera } from "lucide-react";
-// NOTE: successDialog modal was removed — all feedback now uses toast
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { formatGuarani } from "@/lib/utils";
@@ -79,7 +78,7 @@ export default function ScannerClient() {
 
       const el = document.getElementById("qr-scanner");
       if (!el) {
-        setCameraError("Elemento do scanner não encontrado. Recarregue a página.");
+        setCameraError("Elemento del escáner no encontrado. Recargue la página.");
         return;
       }
 
@@ -97,12 +96,12 @@ export default function ScannerClient() {
       const errStr = typeof err === "string" ? err : err?.message || "";
       if (errStr.includes("NotAllowed") || errStr.includes("Permission") || err?.name === "NotAllowedError") {
         setCameraError(
-          "Acesso à câmera negado. No iPhone: vá em Ajustes → Safari → Câmera e selecione \"Permitir\". Depois recarregue esta página."
+          "Acceso a la cámara denegado. En iPhone: vaya a Ajustes → Safari → Cámara y seleccione \"Permitir\". Luego recargue esta página."
         );
       } else if (errStr.includes("NotFound") || err?.name === "NotFoundError") {
-        setCameraError("Nenhuma câmera encontrada no dispositivo.");
+        setCameraError("No se encontró ninguna cámara en el dispositivo.");
       } else {
-        setCameraError(`Erro ao acessar a câmera: ${errStr || "Verifique as permissões."}`);
+        setCameraError(`Error al acceder a la cámara: ${errStr || "Verifique los permisos."}`);
       }
       setScannerActive(false);
       setWantScanner(false);
@@ -134,10 +133,10 @@ export default function ScannerClient() {
       setScannedTransactions(data.transactions || []);
       stopScanner();
       if (showToast) {
-        toast.success("Cartão escaneado com sucesso!");
+        toast.success("¡Tarjeta escaneada con éxito!");
       }
     } catch (error: any) {
-      toast.error(error.message || "Erro ao escanear cartão");
+      toast.error(error.message || "Error al escanear la tarjeta");
     } finally {
       setIsLoading(false);
     }
@@ -150,7 +149,7 @@ export default function ScannerClient() {
 
   const handleManualScan = async () => {
     if (!manualCardId.trim()) {
-      toast.error("Digite um ID de cartão válido");
+      toast.error("Ingrese un ID de tarjeta válido");
       return;
     }
     await fetchParticipantData(manualCardId.trim(), true);
@@ -159,7 +158,7 @@ export default function ScannerClient() {
 
   const submitCredits = async (amountToSubmit: string) => {
     if (!scannedCard || !amountToSubmit) {
-      toast.error("Valor inválido");
+      toast.error("Monto inválido");
       return;
     }
 
@@ -171,19 +170,19 @@ export default function ScannerClient() {
         body: JSON.stringify({
           participantId: scannedCard.id,
           amount: amountToSubmit,
-          description,
+          description: description || "Recarga de crédito (Tesorería)",
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
-      toast.success(`${formatGuarani(amountToSubmit)} adicionado ao cartão!`);
+      toast.success(`¡${formatGuarani(amountToSubmit)} añadido a la tarjeta!`);
       setConfirmDialog({ show: false, amount: "" });
       setAmount("");
       setDescription("");
       await fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
     } catch (error: any) {
-      toast.error(error.message || "Erro ao adicionar crédito");
+      toast.error(error.message || "Error al añadir crédito");
     } finally {
       setIsLoading(false);
     }
@@ -191,7 +190,7 @@ export default function ScannerClient() {
 
   const handleAddPoints = () => {
     if (!amount) {
-      toast.error("Preencha o valor do crédito");
+      toast.error("Ingrese el monto del crédito");
       return;
     }
     setConfirmDialog({ show: true, amount });
@@ -222,22 +221,23 @@ export default function ScannerClient() {
 
   const handleDebit = async () => {
     if (!scannedCard || !debitAmount) {
-      toast.error("Informe o valor da compra (débito)");
+      toast.error("Ingrese el monto de la compra (débito)");
       return;
     }
 
     const val = parseFloat(debitAmount);
     if (val <= 0) {
-      toast.error("Informe um valor positivo para o débito");
+      toast.error("Ingrese un monto positivo para el débito");
       return;
     }
 
     if (val > parseFloat(scannedCard.currentBalance)) {
-      toast.error(`Saldo insuficiente! O cartão possui apenas ${formatGuarani(scannedCard.currentBalance)}.`);
+      toast.error(`¡Saldo insuficiente! La tarjeta solo posee ${formatGuarani(scannedCard.currentBalance)}.`);
       return;
     }
 
-    if (!confirm(`Confirmar venda de ${formatGuarani(val)} para ${scannedCard.name}?`)) return;
+    const cardDisplayName = scannedCard.name ? scannedCard.name : `Tarjeta #${scannedCard.cardNumber || scannedCard.id}`;
+    if (!confirm(`¿Confirmar venta de ${formatGuarani(val)} a ${cardDisplayName}?`)) return;
 
     try {
       setIsLoading(true);
@@ -247,21 +247,21 @@ export default function ScannerClient() {
         body: JSON.stringify({
           participantId: scannedCard.id,
           amount: (-val).toString(),
-          description: auctionItem ? `Venda: ${auctionItem}` : "Venda na Banca",
+          description: auctionItem ? `Venta: ${auctionItem}` : "Venta en el Puesto",
         }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error);
 
       const saldoAtual = data.newBalance ? data.newBalance : 0;
-      toast.success(`Débito de ${formatGuarani(val)} realizado! Novo saldo: ${formatGuarani(saldoAtual)}`);
+      toast.success(`¡Venta de ${formatGuarani(val)} realizada! Saldo restante: ${formatGuarani(saldoAtual)}`);
       if (scannedCard) {
         fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
       }
       setDebitAmount("");
       setAuctionItem("");
     } catch (error: any) {
-      toast.error(error.message || "Erro ao realizar débito");
+      toast.error(error.message || "Error al realizar la venta");
     } finally {
       setIsLoading(false);
     }
@@ -277,16 +277,16 @@ export default function ScannerClient() {
           <div className="flex items-center gap-2">
             <Heart className="w-8 h-8 text-accent fill-accent" />
             <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">
-              {user?.role === "admin" ? "Tesouraria (Admin)" : "Banca (Voluntário)"}
+              {user?.role === "admin" ? "Tesorería (Admin)" : "Puesto / Caseta (Voluntario)"}
             </h1>
           </div>
           <div className="flex gap-2">
             {user?.role === "admin" ? (
-              <button onClick={() => router.push("/admin")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Painel Admin</button>
+              <button onClick={() => router.push("/admin")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Panel Admin</button>
             ) : (
-              <button onClick={() => router.push("/volunteer/dashboard")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Minhas Vendas</button>
+              <button onClick={() => router.push("/volunteer/dashboard")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Mis Ventas</button>
             )}
-            <button onClick={handleLogout} className="btn-secondary p-2 md:px-4" aria-label="Sair">
+            <button onClick={handleLogout} className="btn-secondary p-2 md:px-4" aria-label="Cerrar Sesión">
               <LogOut className="w-4 h-4 md:w-5 md:h-5" />
             </button>
           </div>
@@ -299,7 +299,7 @@ export default function ScannerClient() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
             {/* Scanner Section */}
             <div className="card-elegant animate-fade-in p-6 md:p-8 bg-white/60 backdrop-blur-sm">
-              <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Escanear Cartão</h2>
+              <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Escanear Tarjeta</h2>
 
               {!scannedCard ? (
                 <>
@@ -313,11 +313,11 @@ export default function ScannerClient() {
 
                       <button onClick={startScanner} className="btn-primary w-full sm:w-auto px-8 py-3.5 flex justify-center mx-auto shadow-md">
                         <Camera className="w-5 h-5" />
-                        Abrir Câmera
+                        Abrir Cámara
                       </button>
 
                       <p className="text-sm text-muted-foreground mt-4">
-                        Clique para ativar a câmera e escanear o QR Code do cartão
+                        Haga clic para activar la cámara y escanear el código QR de la tarjeta
                       </p>
                     </div>
                   ) : (
@@ -329,12 +329,12 @@ export default function ScannerClient() {
 
                   <div className="pt-6 border-t border-border mt-4">
                     <p className="text-sm text-muted-foreground text-center mb-4">
-                      Ou digite o Número do cartão ou Nome manualmente
+                      O ingrese el Número de tarjeta o Nombre manualmente
                     </p>
                     <div className="flex gap-2">
                       <input
                         type="text"
-                        placeholder="Nº ou Nome"
+                        placeholder="Nº o Nombre"
                         value={manualCardId}
                         onChange={(e) => setManualCardId(e.target.value)}
                         onKeyDown={(e) => e.key === "Enter" && handleManualScan()}
@@ -350,24 +350,24 @@ export default function ScannerClient() {
                 <div className="flex flex-col gap-4">
                   <div className="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3">
                     <Check className="w-5 h-5 text-green-600" />
-                    <span className="text-green-700 font-semibold text-sm md:text-base">Cartão identificado!</span>
+                    <span className="text-green-700 font-semibold text-sm md:text-base">¡Tarjeta identificada!</span>
                   </div>
 
                   <div className="bg-white/80 rounded-xl p-5 border border-border">
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Nome do Aluno / Responsável</p>
-                    <p className="font-semibold text-base mb-4">{scannedCard.name}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Nombre del Alumno / Titular</p>
+                    <p className="font-semibold text-base mb-4">{scannedCard.name || `Tarjeta #${scannedCard.cardNumber || scannedCard.id}`}</p>
                     
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Número do Cartão</p>
-                    <p className="font-semibold text-sm md:text-base break-all mb-4">{scannedCard.cardNumber || "Sem Cartão"}</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Número de Tarjeta</p>
+                    <p className="font-semibold text-sm md:text-base break-all mb-4">{scannedCard.cardNumber || "Sin Número"}</p>
                     
-                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Saldo Disponível no Cartão</p>
+                    <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Saldo Disponible en la Tarjeta</p>
                     <p className="text-3xl md:text-4xl font-bold text-accent font-inter">
                       {formatGuarani(scannedCard.currentBalance)}
                     </p>
                   </div>
 
                   <button onClick={resetScan} className="btn-secondary w-full py-3 flex justify-center items-center gap-2">
-                    <X className="w-4 h-4" /> Novo Scan / Outro Cartão
+                    <X className="w-4 h-4" /> Nuevo Escaneo / Otra Tarjeta
                   </button>
                 </div>
               )}
@@ -378,15 +378,15 @@ export default function ScannerClient() {
               {scannedCard && (
                 <div className="card-elegant animate-fade-in p-6 md:p-8 border-2 border-indigo-200 bg-indigo-50/50">
                   <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6 flex items-center gap-2">
-                    <span>🛒</span> Realizar Venda (Débito)
+                    <span>🛒</span> Realizar Venta (Débito)
                   </h2>
                   
                   <div className="space-y-4">
                     <div>
-                      <label className="label-elegant mb-2 block">Item / Descrição da Venda</label>
+                      <label className="label-elegant mb-2 block">Producto / Descripción de la Venta</label>
                       <input 
                         type="text" 
-                        placeholder="Ex: Lanche, Refrigerante, Pastel..." 
+                        placeholder="Ej: Comida, Gaseosa, Empanada..." 
                         value={auctionItem} 
                         onChange={(e) => setAuctionItem(e.target.value)} 
                         className="input-elegant bg-white" 
@@ -394,7 +394,7 @@ export default function ScannerClient() {
                     </div>
 
                     <div>
-                      <label className="label-elegant mb-2 block">Valores Rápidos de Venda (G$)</label>
+                      <label className="label-elegant mb-2 block">Valores Rápidos de Venta (G$)</label>
                       <div className="grid grid-cols-3 gap-2 mb-4">
                         {[5000, 10000, 15000, 20000, 50000, 100000].map((val) => (
                           <button
@@ -409,14 +409,14 @@ export default function ScannerClient() {
                     </div>
 
                     <div className="relative">
-                      <label className="label-elegant mb-2 block">Valor da Venda (Será DEBITADO em G$)</label>
+                      <label className="label-elegant mb-2 block">Monto de la Venta (Se DEBITARÁ en G$)</label>
                       <div className="relative">
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-rose-500 font-bold">DEBITAR</span>
                         <input 
                           type="number" 
                           step="1000" 
                           min="0" 
-                          placeholder="Ex: 15000" 
+                          placeholder="Ej: 15000" 
                           value={debitAmount} 
                           onChange={(e) => setDebitAmount(e.target.value)} 
                           className="input-elegant bg-white border-rose-200 focus:border-rose-500 text-rose-700 font-bold text-lg" 
@@ -425,7 +425,7 @@ export default function ScannerClient() {
                     </div>
 
                     <p className="text-xs text-muted-foreground font-medium">
-                      O valor será subtraído do saldo atual do cartão ({formatGuarani(scannedCard.currentBalance)}).
+                      El monto se descontará del saldo actual de la tarjeta ({formatGuarani(scannedCard.currentBalance)}).
                     </p>
 
                     <button 
@@ -433,19 +433,19 @@ export default function ScannerClient() {
                       disabled={isLoading || !debitAmount} 
                       className="btn-primary w-full py-4 bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 flex justify-center items-center gap-2 font-bold text-base"
                     >
-                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : `CONFIRMAR VENDA DE ${debitAmount ? formatGuarani(debitAmount) : 'G$ 0'}`}
+                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : `CONFIRMAR VENTA DE ${debitAmount ? formatGuarani(debitAmount) : 'G$ 0'}`}
                     </button>
                   </div>
                 </div>
               )}
 
-              {/* Card de Adição de Crédito (Exclusivo da Tesouraria / Admin) */}
+              {/* Card de Adición de Crédito (Exclusivo da Tesouraria / Admin) */}
               {user?.role === "admin" && (
                 <div className="card-elegant animate-fade-in p-6 md:p-8 bg-emerald-50/60 border border-emerald-200">
                   <h2 className="text-xl md:text-2xl font-playfair font-bold mb-2 text-emerald-900 flex items-center gap-2">
-                    <span>💵</span> Tesouraria: Recarregar Crédito
+                    <span>💵</span> Tesorería: Recargar Crédito
                   </h2>
-                  <p className="text-xs text-emerald-700 mb-6 font-medium">Apenas Administradores podem colocar saldo no cartão.</p>
+                  <p className="text-xs text-emerald-700 mb-6 font-medium">Solo Administradores pueden recargar saldo en la tarjeta.</p>
 
                   {scannedCard ? (
                     confirmDialog.show ? (
@@ -453,7 +453,7 @@ export default function ScannerClient() {
                         <div className="bg-white border border-emerald-200 p-6 rounded-2xl">
                           <h3 className="text-lg font-semibold text-foreground mb-2">Confirmar Recarga</h3>
                           <p className="text-muted-foreground mb-6">
-                            Adicionar <strong className="text-emerald-700 text-xl">{formatGuarani(confirmDialog.amount)}</strong> de crédito para <strong>{scannedCard.name}</strong>?
+                            ¿Añadir <strong className="text-emerald-700 text-xl">{formatGuarani(confirmDialog.amount)}</strong> de crédito para <strong>{scannedCard.name || `Tarjeta #${scannedCard.cardNumber}`}</strong>?
                           </p>
                           <div className="flex gap-3">
                             <button 
@@ -491,12 +491,12 @@ export default function ScannerClient() {
                         </div>
 
                         <div className="relative">
-                          <label className="label-elegant mb-2 block">Valor Customizado de Recarga (G$)</label>
+                          <label className="label-elegant mb-2 block">Monto Personalizado de Recarga (G$)</label>
                           <input 
                             type="number" 
                             step="1000" 
                             min="0" 
-                            placeholder="Ex: 50000" 
+                            placeholder="Ej: 50000" 
                             value={amount} 
                             onChange={(e) => setAmount(e.target.value)} 
                             className="input-elegant bg-white text-emerald-800 font-bold" 
@@ -504,10 +504,10 @@ export default function ScannerClient() {
                         </div>
 
                         <div>
-                          <label className="label-elegant mb-2 block">Observação (Opcional)</label>
+                          <label className="label-elegant mb-2 block">Observación (Opcional)</label>
                           <input 
                             type="text" 
-                            placeholder="Ex: Recarga Tesouraria" 
+                            placeholder="Ej: Recarga Tesorería" 
                             value={description} 
                             onChange={(e) => setDescription(e.target.value)} 
                             className="input-elegant bg-white" 
@@ -519,13 +519,13 @@ export default function ScannerClient() {
                           disabled={isLoading || !amount} 
                           className="btn-primary bg-emerald-600 hover:bg-emerald-700 shadow-emerald-200 w-full py-3.5 mt-2 font-semibold"
                         >
-                          Adicionar Crédito Agora
+                          Añadir Crédito Ahora
                         </button>
                       </div>
                     )
                   ) : (
                     <div className="text-center py-8 px-4 rounded-xl border border-dashed border-emerald-200 bg-white/40">
-                      <p className="text-muted-foreground text-sm">Escaneie um cartão para realizar recarga na Tesouraria.</p>
+                      <p className="text-muted-foreground text-sm">Escanee una tarjeta para realizar recargas en la Tesorería.</p>
                     </div>
                   )}
                 </div>
@@ -534,16 +534,16 @@ export default function ScannerClient() {
               {/* Card de Histórico de Transações */}
               {scannedCard && (
                 <div className="card-elegant animate-fade-in p-6 md:p-8 bg-white/60 backdrop-blur-sm">
-                  <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Histórico do Cartão</h2>
+                  <h2 className="text-xl md:text-2xl font-playfair font-bold mb-6">Historial de la Tarjeta</h2>
                   
                   {scannedTransactions.length > 0 ? (
                     <div className="space-y-4">
                       {scannedTransactions.map((tx) => (
                         <div key={tx.id} className="bg-white rounded-xl p-4 border border-border flex justify-between items-center shadow-sm">
                           <div>
-                            <p className="font-semibold text-sm">{tx.description || "Sem descrição"}</p>
+                            <p className="font-semibold text-sm">{tx.description || "Sin descripción"}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(tx.createdAt).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+                              {new Date(tx.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
                             </p>
                           </div>
                           <div className={`font-bold ${parseFloat(tx.amount) > 0 ? 'text-green-600' : 'text-rose-600'} text-right`}>
@@ -554,7 +554,7 @@ export default function ScannerClient() {
                     </div>
                   ) : (
                     <p className="text-sm text-muted-foreground text-center py-4 bg-white/40 rounded-xl border border-dashed border-border">
-                      Nenhuma transação recente encontrada neste cartão.
+                      No se encontraron transacciones recientes en esta tarjeta.
                     </p>
                   )}
                 </div>

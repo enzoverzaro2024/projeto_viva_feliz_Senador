@@ -123,7 +123,7 @@ export default function AdminDashboard() {
 
   // Points form
   const [selectedParticipant, setSelectedParticipant] = useState("");
-  const [pointAmount, setPointAmount] = useState("50");
+  const [pointAmount, setPointAmount] = useState("50000");
   const [pointDescription, setPointDescription] = useState("");
   const [pointLoading, setPointLoading] = useState(false);
 
@@ -904,23 +904,23 @@ Te esperamos lá! 🔥`;
 
   const handleAddPoints = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedParticipant || !pointAmount) { toast.error("Selecione um participante e informe a pontuação"); return; }
+    if (!selectedParticipant || !pointAmount) { toast.error("Selecione um participante e informe o valor da recarga"); return; }
     setPointLoading(true);
     try {
       const res = await fetch("/api/admin/credits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantId: parseInt(selectedParticipant), amount: pointAmount, description: pointDescription || "Missão validada pelo admin" }),
+        body: JSON.stringify({ participantId: parseInt(selectedParticipant), amount: pointAmount, description: pointDescription || "Recarga em dinheiro na tesouraria" }),
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message);
+        toast.success(data.message || "Recarga de crédito realizada com sucesso!");
         setSelectedParticipant("");
-        setPointAmount("50");
+        setPointAmount("50000");
         setPointDescription("");
         fetchParticipants(search);
       } else toast.error(data.error);
-    } catch { toast.error("Erro ao lançar pontos"); }
+    } catch { toast.error("Erro ao realizar recarga"); }
     finally { setPointLoading(false); }
   };
 
@@ -1268,10 +1268,10 @@ Te esperamos lá! 🔥`;
 
   const allTabs: { key: TabType; label: string; count?: number }[] = [
     { key: "bancas", label: "📊 Relatório por Banca" },
-    { key: "participantes", label: "Participantes", count: isMounted ? participants.length : 0 },
-    { key: "pontos", label: "💵 Tesouraria (Recarga)" },
-    { key: "cartoes", label: "🏷️ Cartões" },
-    { key: "transacoes", label: "📊 Extrato Geral" },
+    { key: "participantes", label: "💳 Cartões / Compradores", count: isMounted ? participants.length : 0 },
+    { key: "pontos", label: "💵 Tesouraria — Recargas" },
+    { key: "cartoes", label: "🏷️ Lote de Cartões" },
+    { key: "transacoes", label: "📊 Extrato de Operações" },
     { key: "aprovacoes", label: "Aprovações", count: isMounted ? pendingUsers.length : 0 },
     { key: "usuarios", label: "Administradores", count: isMounted ? allUsers.length : 0 },
   ];
@@ -1710,32 +1710,62 @@ Te esperamos lá! 🔥`;
               </div>
           )}
 
-          {/* ===== Tab: Adicionar Créditos ===== */}
+          {/* ===== Tab: Adicionar Créditos (Tesouraria) ===== */}
           {activeTab === "pontos" && (
             <div className="animate-fade-in">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
-                <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Lançar Pontos</h2>
+                <div>
+                  <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>💵 Tesouraria — Recarga de Créditos (G$)</h2>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginTop: '0.2rem' }}>Adicione saldo em Guaranis ao cartão do participante após receber o pagamento em dinheiro</p>
+                </div>
               </div>
               <div className="card-elegant">
-                <form onSubmit={handleAddPoints} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.25rem' }}>
+                <form onSubmit={handleAddPoints} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   <div>
-                    <label className="label-elegant">Participante</label>
+                    <label className="label-elegant">Comprador / Cartão *</label>
                     <select value={selectedParticipant} onChange={(e) => setSelectedParticipant(e.target.value)} className="input-elegant" style={{ cursor: 'pointer' }} required>
-                      <option value="">Selecione um participante</option>
-                      {participants.map((p) => (<option key={p.id} value={p.id}>{p.name} — {p.email}</option>))}
+                      <option value="">Selecione o comprador ou nº do cartão</option>
+                      {participants.map((p) => (
+                        <option key={p.id} value={p.id}>
+                          {p.name ? `${p.name} (Cartão #${p.cardNumber || '---'})` : `Cartão #${p.cardNumber || '---'}`} — Saldo atual: {formatGuarani(p.currentBalance)}
+                        </option>
+                      ))}
                     </select>
                   </div>
+
                   <div>
-                    <label className="label-elegant">Pontos</label>
-                    <input type="number" step="1" min="1" value={pointAmount} onChange={(e) => setPointAmount(e.target.value)} className="input-elegant" required />
+                    <label className="label-elegant">Valor da Recarga em Guaranis (G$) *</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                      {[10000, 20000, 50000, 100000, 200000, 500000].map((val) => (
+                        <button
+                          key={val}
+                          type="button"
+                          onClick={() => setPointAmount(String(val))}
+                          className="btn-secondary"
+                          style={{
+                            padding: '0.5rem 0.75rem',
+                            fontSize: '0.85rem',
+                            fontWeight: 700,
+                            background: pointAmount === String(val) ? 'var(--accent)' : 'white',
+                            color: pointAmount === String(val) ? 'white' : 'var(--accent)',
+                            borderColor: 'var(--accent)'
+                          }}
+                        >
+                          {formatGuarani(val)}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="number" step="1000" min="1000" value={pointAmount} onChange={(e) => setPointAmount(e.target.value)} className="input-elegant" placeholder="Ex: 50000" required />
                   </div>
-                  <div style={{ gridColumn: '1 / -1' }}>
-                    <label className="label-elegant">Descrição (opcional)</label>
-                    <input type="text" placeholder="Missão validada pelo admin" value={pointDescription} onChange={(e) => setPointDescription(e.target.value)} className="input-elegant" />
-                  </div>
+
                   <div>
-                    <button type="submit" disabled={pointLoading} className="btn-primary" style={{ padding: '0.75rem 1.5rem' }}>
-                      {pointLoading ? (<><Loader2 style={{ width: 16, height: 16 }} className="animate-spin" /> Processando...</>) : (<><Plus style={{ width: 16, height: 16 }} /> Lançar Pontos</>)}
+                    <label className="label-elegant">Observação / Descrição (opcional)</label>
+                    <input type="text" placeholder="Ex: Recarga em dinheiro na tesouraria da escola" value={pointDescription} onChange={(e) => setPointDescription(e.target.value)} className="input-elegant" />
+                  </div>
+
+                  <div>
+                    <button type="submit" disabled={pointLoading} className="btn-primary" style={{ padding: '0.85rem 1.75rem', fontSize: '1rem', fontWeight: 700 }}>
+                      {pointLoading ? (<><Loader2 style={{ width: 18, height: 18 }} className="animate-spin" /> Processando Recarga...</>) : (<><Plus style={{ width: 18, height: 18 }} /> Adicionar Crédito (G$)</>)}
                     </button>
                   </div>
                 </form>
@@ -1770,7 +1800,7 @@ Te esperamos lá! 🔥`;
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Participante</th>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Cartão</th>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Data/Hora</th>
-                        <th style={{ textAlign: 'center', padding: '1rem' }}>Pontos</th>
+                        <th style={{ textAlign: 'center', padding: '1rem' }}>Valor (G$)</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1778,7 +1808,7 @@ Te esperamos lá! 🔥`;
                         <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
                           <td style={{ padding: '1rem' }} data-label="Participante">
                             <div style={{ fontWeight: 600 }}>{t.participantName || "---"}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{t.description || "Recarga manual"}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{t.description || (Number(t.amount) > 0 ? "Recarga realizada na tesouraria" : "Venda no posto")}</div>
                           </td>
                           <td style={{ padding: '1rem', textAlign: 'center', fontFamily: 'monospace' }} data-label="Cartão">
                             {t.cardNumber || "---"}
@@ -1787,9 +1817,9 @@ Te esperamos lá! 🔥`;
                             <div>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{new Date(t.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
                           </td>
-                          <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Pontos">
-                            <span style={{ fontWeight: 800, color: '#16a34a', background: '#f0fdf4', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.9rem' }}>
-                              + {Number(t.amount)} pts
+                          <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Valor">
+                            <span style={{ fontWeight: 800, color: Number(t.amount) > 0 ? '#16a34a' : '#dc2626', background: Number(t.amount) > 0 ? '#f0fdf4' : '#fef2f2', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.9rem' }}>
+                              {Number(t.amount) > 0 ? '+ ' : ''}{formatGuarani(t.amount)}
                             </span>
                           </td>
                         </tr>

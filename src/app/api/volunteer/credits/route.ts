@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
       participantId,
       volunteerId: session.userId,
       amount,
-      description: description || `Missão concluída`,
+      description: description || (parseFloat(amount) < 0 ? "Venda no posto" : "Recarga de crédito"),
     }).returning();
 
     // Update participant balance
@@ -85,7 +85,7 @@ export async function POST(req: NextRequest) {
       success: true,
       transaction: result[0],
       newBalance,
-      message: `${parseFloat(amount).toFixed(0)} pontos validados com sucesso`,
+      message: "Operação realizada com sucesso",
     });
   } catch (error: any) {
     console.error("Add credits error:", error);
