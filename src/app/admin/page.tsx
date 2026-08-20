@@ -173,74 +173,150 @@ export default function AdminDashboard() {
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [transLoading, setTransLoading] = useState(false);
   const [transactionSearch, setTransactionSearch] = useState("");
+  const [txFilterType, setTxFilterType] = useState<"all" | "credit" | "debit">("all");
 
-  // Sales Report state
-  const [salesReport, setSalesReport] = useState<{
-    summary: { totalTreasury: number; totalSales: number; totalRemaining: number };
-    bancas: Array<{ volunteerId: number; name: string; email: string; totalSales: number; salesCount: number; totalCreditsAdded: number }>;
-  } | null>(null);
-  const [salesReportLoading, setSalesReportLoading] = useState(false);
+  // Transaction CRUD state
+  const [showCreateTxModal, setShowCreateTxModal] = useState(false);
+  const [newTxData, setNewTxData] = useState({ participantId: "", amount: "", description: "", type: "credit" as "credit" | "debit" });
+  const [newTxLoading, setNewTxLoading] = useState(false);
 
-  const fetchSalesReport = async () => {
-    setSalesReportLoading(true);
+  const [editingTx, setEditingTx] = useState<any | null>(null);
+  const [editTxData, setEditTxData] = useState({ amount: "", description: "", participantId: "" });
+  const [editTxLoading, setEditTxLoading] = useState(false);
+
+  const handleCreateTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newTxData.participantId || !newTxData.amount) {
+      toast.error("Selecione o comprador/cartão e informe o valor");
+      return;
+    }
+    setNewTxLoading(true);
     try {
-      const res = await fetch("/api/admin/reports/sales");
+      const res = await fetch("/api/admin/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newTxData)
+      });
       const data = await res.json();
-      if (res.ok) setSalesReport(data);
-      else toast.error("Erro ao carregar relatório");
+      if (res.ok) {
+        toast.success(data.message || "Operação criada com sucesso!");
+        setShowCreateTxModal(false);
+        setNewTxData({ participantId: "", amount: "", description: "", type: "credit" });
+        fetchTransactions();
+        fetchParticipants(search, true);
+        fetchSalesReport();
+      } else {
+        toast.error(data.error || "Erro ao criar operação");
+      }
     } catch {
-      toast.error("Erro de conexão ao carregar relatório");
+      toast.error("Erro de conexão");
     } finally {
-      setSalesReportLoading(false);
+      setNewTxLoading(false);
     }
   };
 
-  const exportSalesCSV = () => {
-    if (!salesReport || !salesReport.bancas) return;
-    const data = salesReport.bancas.map(b => ({
-      "Nome da Banca / Operador": b.name,
-      "Email": b.email,
-      "Vendas Realizadas": b.salesCount,
-      "Total Vendido (G$)": b.totalSales,
-      "Total Recarregado (G$)": b.totalCreditsAdded
+  const startEditTx = (tx: any) => {
+    setEditingTx(tx);
+    setEditTxData({
+      amount: String(Math.abs(parseFloat(tx.amount))),
+      description: tx.description || "",
+      participantId: String(tx.participantId || "")
+    });
+  };
+
+  const handleSaveEditTx = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingTx || !editTxData.amount) return;
+    setEditTxLoading(true);
+    try {
+      const isDebit = parseFloat(editingTx.amount) < 0;
+      const numericVal = parseFloat(editTxData.amount);
+      const finalAmount = isDebit ? -Math.abs(numericVal) : Math.abs(numericVal);
+
+      const res = await fetch("/api/admin/transactions", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transactionId: editingTx.id,
+          amount: finalAmount.toString(),
+          description: editTxData.description,
+          participantId: editTxData.participantId
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Operação atualizada com sucesso!");
+        setEditingTx(null);
+        fetchTransactions();
+        fetchParticipants(search, true);
+        fetchSalesReport();
+      } else {
+        toast.error(data.error || "Erro ao atualizar operação");
+      }
+    } catch {
+      toast.error("Erro de conexão");
+    } finally {
+      setEditTxLoading(false);
+    }
+  };
+
+  const handleDeleteTx = async (txId: number) => {
+    if (!confirm(`Excluir a operação #${txId}? O saldo do cartão será estornado/ajustado automaticamente.`)) return;
+    try {
+      const res = await fetch("/api/admin/transactions", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transactionId: txId })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Operação excluída!");
+        fetchTransactions();
+        fetchParticipants(search, true);
+        fetchSalesReport();
+      } else {
+        toast.error(data.error || "Erro ao excluir operação");
+      }
+    } catch {
+      toast.error("Erro de conexão");
+    }
+  };
+
+  const exportTransactionsCSV = () => {
+    const data = filteredTransactions.map(t => ({
+      "ID Operação": t.id,
+      "Comprador": t.participantName || "Sem Nome",
+      "Nº Cartão": t.cardNumber || "---",
+      "Operador / Banca": t.volunteerName || "Tesouraria (Admin)",
+      "Tipo": Number(t.amount) > 0 ? "Recarga (Crédito)" : "Venda (Débito)",
+      "Valor (G$)": Number(t.amount),
+      "Descrição": t.description || "",
+      "Data e Hora": new Date(t.createdAt).toLocaleString("pt-BR")
     }));
     const csv = Papa.unparse(data);
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `relatorio_vendas_feira_${new Date().toISOString().slice(0,10)}.csv`);
+    link.href = url;
+    link.download = `extrato_operacoes_${new Date().toISOString().slice(0,10)}.csv`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
-  // States for Card Transfer
-  const [transferParticipant, setTransferParticipant] = useState<ParticipantData | null>(null);
-  const [newCardIdForTransfer, setNewCardIdForTransfer] = useState("");
-  const [newCardNumberForTransfer, setNewCardNumberForTransfer] = useState("");
-  const [transferLoading, setTransferLoading] = useState(false);
-
-  // Memo para a lista de presença ordenada por quem tem MAIS presenças
-  const sortedPresenceParticipants = useMemo(() => {
-    return [...participants]
-      .filter(p =>
-        p.name.toLowerCase().includes(presenceSearch.toLowerCase()) ||
-        (p.cardNumber || '').includes(presenceSearch)
-      )
-      .map(p => {
-        const count = allAttendance.filter(a => a.participantId === p.id).length;
-        return { ...p, attendanceCount: count };
-      })
-      .sort((a, b) => b.attendanceCount - a.attendanceCount);
-  }, [participants, allAttendance, presenceSearch]);
-
   const filteredTransactions = useMemo(() => {
-    return allTransactions.filter(t => 
-      t.participantName?.toLowerCase().includes(transactionSearch.toLowerCase()) ||
-      (t.cardNumber || "").includes(transactionSearch)
-    );
-  }, [allTransactions, transactionSearch]);
+    return allTransactions.filter(t => {
+      const matchSearch = (t.participantName || "").toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        (t.cardNumber || "").includes(transactionSearch) ||
+        (t.description || "").toLowerCase().includes(transactionSearch.toLowerCase()) ||
+        (t.volunteerName || "").toLowerCase().includes(transactionSearch.toLowerCase());
+      
+      const numAmt = Number(t.amount);
+      const matchType = txFilterType === "all" ? true : (txFilterType === "credit" ? numAmt > 0 : numAmt < 0);
+
+      return matchSearch && matchType;
+    });
+  }, [allTransactions, transactionSearch, txFilterType]);
 
   // Helper compartilhado: telefone inválido
   const isInvalidPhone = (phone: string) => {
@@ -1773,64 +1849,327 @@ Te esperamos lá! 🔥`;
             </div>
           )}
 
-          {/* ===== Tab: Histórico de Transações ===== */}
+          {/* ===== Tab: Histórico / CRUD de Operações ===== */}
           {activeTab === "transacoes" && (
             <div className="animate-fade-in space-y-6">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h2 style={{ fontSize: '1.4rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>📊 Histórico de Recargas</h2>
-                <button onClick={fetchTransactions} disabled={transLoading} className="btn-secondary" style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem' }}>
-                  {transLoading ? <Loader2 className="animate-spin" size={14} /> : "Atualizar"}
-                </button>
+              {/* Header & Actions */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-bold font-inter tracking-tight">📊 Gestão de Operações (CRUD)</h2>
+                  <p className="text-sm text-muted-foreground">Controle, crie, edite ou cancele lançamentos e recargas na feira.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={() => setShowCreateTxModal(true)}
+                    className="btn-primary flex items-center gap-2 text-sm py-2 px-4 shadow-md bg-emerald-600 hover:bg-emerald-700 text-white"
+                  >
+                    <Plus size={16} /> Nova Operação Manual
+                  </button>
+                  <button
+                    onClick={exportTransactionsCSV}
+                    className="btn-secondary flex items-center gap-2 text-sm py-2 px-3"
+                  >
+                    <Download size={15} /> Exportar CSV
+                  </button>
+                  <button
+                    onClick={fetchTransactions}
+                    disabled={transLoading}
+                    className="btn-secondary flex items-center gap-2 text-sm py-2 px-3"
+                  >
+                    {transLoading ? <Loader2 className="animate-spin" size={15} /> : <RefreshCw size={15} />}
+                  </button>
+                </div>
               </div>
 
-              <div className="card-elegant overflow-hidden p-0">
-                <div style={{ padding: '1rem', borderBottom: '1px solid var(--border)' }}>
-                  <div style={{ position: 'relative' }}>
-                    <Search style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', width: 16, height: 16, color: 'var(--muted-foreground)' }} />
-                    <input type="text" placeholder="Buscar por nome ou cartão..." value={transactionSearch}
-                      onChange={(e) => setTransactionSearch(e.target.value)}
-                      className="input-elegant" style={{ paddingLeft: '2.5rem' }} />
-                  </div>
+              {/* Filters & Search Bar */}
+              <div className="card-elegant p-4 bg-white/80 backdrop-blur-sm border border-border shadow-sm flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="relative w-full md:w-96">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    placeholder="Buscar por comprador, cartão, banca ou descrição..."
+                    value={transactionSearch}
+                    onChange={(e) => setTransactionSearch(e.target.value)}
+                    className="input-elegant pl-9 text-sm"
+                  />
                 </div>
 
-                <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch', width: '100%' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
+                <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                  <button
+                    onClick={() => setTxFilterType("all")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${txFilterType === "all" ? 'bg-indigo-600 text-white shadow-sm' : 'bg-muted text-muted-foreground hover:bg-muted/80'}`}
+                  >
+                    Todas ({allTransactions.length})
+                  </button>
+                  <button
+                    onClick={() => setTxFilterType("credit")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${txFilterType === "credit" ? 'bg-emerald-600 text-white shadow-sm' : 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200'}`}
+                  >
+                    🟢 Recargas (Crédito)
+                  </button>
+                  <button
+                    onClick={() => setTxFilterType("debit")}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${txFilterType === "debit" ? 'bg-rose-600 text-white shadow-sm' : 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200'}`}
+                  >
+                    🔴 Vendas (Débito)
+                  </button>
+                </div>
+              </div>
+
+              {/* Operations Table */}
+              <div className="card-elegant overflow-hidden p-0 shadow-sm">
+                <div className="overflow-x-auto w-full">
+                  <table className="w-full text-left border-collapse mobile-card-table">
                     <thead>
-                      <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
-                        <th style={{ textAlign: 'left', padding: '1rem' }}>Participante</th>
-                        <th style={{ textAlign: 'center', padding: '1rem' }}>Cartão</th>
-                        <th style={{ textAlign: 'center', padding: '1rem' }}>Data/Hora</th>
-                        <th style={{ textAlign: 'center', padding: '1rem' }}>Valor (G$)</th>
+                      <tr className="border-b border-border bg-muted/40 text-muted-foreground text-xs uppercase tracking-wider">
+                        <th className="p-4 font-semibold">ID</th>
+                        <th className="p-4 font-semibold">Comprador / Cartão</th>
+                        <th className="p-4 font-semibold">Operador / Banca</th>
+                        <th className="p-4 font-semibold text-center">Tipo</th>
+                        <th className="p-4 font-semibold text-center">Valor (G$)</th>
+                        <th className="p-4 font-semibold">Descrição</th>
+                        <th className="p-4 font-semibold text-center">Data / Hora</th>
+                        <th className="p-4 font-semibold text-center">Ações</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {filteredTransactions.map((t) => (
-                        <tr key={t.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                          <td style={{ padding: '1rem' }} data-label="Participante">
-                            <div style={{ fontWeight: 600 }}>{t.participantName || "---"}</div>
-                            <div style={{ fontSize: '0.7rem', color: 'var(--muted-foreground)' }}>{t.description || (Number(t.amount) > 0 ? "Recarga realizada na tesouraria" : "Venda no posto")}</div>
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center', fontFamily: 'monospace' }} data-label="Cartão">
-                            {t.cardNumber || "---"}
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center', fontSize: '0.85rem' }} data-label="Data/Hora">
-                            <div>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</div>
-                            <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{new Date(t.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
-                          </td>
-                          <td style={{ padding: '1rem', textAlign: 'center' }} data-label="Valor">
-                            <span style={{ fontWeight: 800, color: Number(t.amount) > 0 ? '#16a34a' : '#dc2626', background: Number(t.amount) > 0 ? '#f0fdf4' : '#fef2f2', padding: '0.2rem 0.6rem', borderRadius: '1rem', fontSize: '0.9rem' }}>
-                              {Number(t.amount) > 0 ? '+ ' : ''}{formatGuarani(t.amount)}
-                            </span>
+                    <tbody className="divide-y divide-border">
+                      {filteredTransactions.map((t) => {
+                        const isCredit = Number(t.amount) > 0;
+                        return (
+                          <tr key={t.id} className="hover:bg-muted/20 transition-colors">
+                            <td className="p-4 text-xs font-mono text-muted-foreground whitespace-nowrap" data-label="ID">
+                              #{t.id}
+                            </td>
+                            <td className="p-4" data-label="Comprador / Cartão">
+                              <div className="font-semibold text-sm">{t.participantName || "Sem Nome"}</div>
+                              <div className="text-xs font-mono text-indigo-600">Cartão #{t.cardNumber || "---"}</div>
+                            </td>
+                            <td className="p-4 text-sm text-foreground/80" data-label="Operador / Banca">
+                              <div className="font-medium">{t.volunteerName || "Tesouraria"}</div>
+                              {t.volunteerEmail && <div className="text-xs text-muted-foreground">{t.volunteerEmail}</div>}
+                            </td>
+                            <td className="p-4 text-center whitespace-nowrap" data-label="Tipo">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold ${isCredit ? 'bg-emerald-100 text-emerald-800' : 'bg-rose-100 text-rose-800'}`}>
+                                {isCredit ? '🟢 Recarga' : '🔴 Venda'}
+                              </span>
+                            </td>
+                            <td className="p-4 text-center whitespace-nowrap" data-label="Valor">
+                              <span className={`font-bold font-mono text-sm px-3 py-1 rounded-full ${isCredit ? 'text-emerald-700 bg-emerald-50 border border-emerald-200' : 'text-rose-700 bg-rose-50 border border-rose-200'}`}>
+                                {isCredit ? '+' : ''}{formatGuarani(t.amount)}
+                              </span>
+                            </td>
+                            <td className="p-4 text-xs text-foreground/80 min-w-[180px]" data-label="Descrição">
+                              {t.description || (isCredit ? "Recarga realizada na tesouraria" : "Venda no posto")}
+                            </td>
+                            <td className="p-4 text-center text-xs text-muted-foreground whitespace-nowrap" data-label="Data / Hora">
+                              <div>{new Date(t.createdAt).toLocaleDateString('pt-BR')}</div>
+                              <div className="text-[11px] opacity-75">{new Date(t.createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</div>
+                            </td>
+                            <td className="p-4 text-center whitespace-nowrap" data-label="Ações">
+                              <div className="flex items-center justify-center gap-1.5">
+                                <button
+                                  onClick={() => startEditTx(t)}
+                                  title="Editar Operação"
+                                  className="p-1.5 rounded-md bg-indigo-50 hover:bg-indigo-100 text-indigo-700 transition-colors"
+                                >
+                                  <Pencil size={15} />
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteTx(t.id)}
+                                  title="Excluir Operação (Estorna Saldo)"
+                                  className="p-1.5 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-700 transition-colors"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                      {filteredTransactions.length === 0 && (
+                        <tr>
+                          <td colSpan={8} className="p-12 text-center text-muted-foreground">
+                            Nenhuma operação encontrada com os filtros selecionados.
                           </td>
                         </tr>
-                      ))}
-                      {filteredTransactions.length === 0 && (
-                        <tr><td colSpan={4} style={{ padding: '3rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum registro encontrado</td></tr>
                       )}
                     </tbody>
                   </table>
                 </div>
               </div>
+
+              {/* MODAL: Nova Operação Manual (Create) */}
+              {showCreateTxModal && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-150 border border-border">
+                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+                      <h3 className="text-lg font-bold font-inter flex items-center gap-2 text-indigo-700">
+                        <Plus className="w-5 h-5" /> Nova Operação Manual
+                      </h3>
+                      <button onClick={() => setShowCreateTxModal(false)} className="text-muted-foreground hover:text-foreground">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleCreateTx} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Comprador / Cartão *</label>
+                        <select
+                          value={newTxData.participantId}
+                          onChange={(e) => setNewTxData({ ...newTxData, participantId: e.target.value })}
+                          className="input-elegant text-sm"
+                          required
+                        >
+                          <option value="">-- Selecione o Comprador / Cartão --</option>
+                          {participants.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name || "Sem Nome"} — Cartão #{p.cardNumber || "---"} (Saldo: {formatGuarani(p.currentBalance)})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Tipo de Operação *</label>
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setNewTxData({ ...newTxData, type: "credit" })}
+                            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${newTxData.type === "credit" ? 'bg-emerald-600 text-white border-emerald-700 shadow' : 'bg-emerald-50 text-emerald-800 border-emerald-200'}`}
+                          >
+                            🟢 Recarga (Crédito +)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setNewTxData({ ...newTxData, type: "debit" })}
+                            className={`py-2 px-3 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 border transition-all ${newTxData.type === "debit" ? 'bg-rose-600 text-white border-rose-700 shadow' : 'bg-rose-50 text-rose-800 border-rose-200'}`}
+                          >
+                            🔴 Venda (Débito -)
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Valor da Operação em Guaranis (G$) *</label>
+                        <input
+                          type="number"
+                          step="1"
+                          placeholder="Ex: 50000"
+                          value={newTxData.amount}
+                          onChange={(e) => setNewTxData({ ...newTxData, amount: e.target.value })}
+                          className="input-elegant text-sm font-mono font-bold"
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Descrição / Motivo</label>
+                        <input
+                          type="text"
+                          placeholder="Ex: Recarga manual tesouraria ou Ajuste"
+                          value={newTxData.description}
+                          onChange={(e) => setNewTxData({ ...newTxData, description: e.target.value })}
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="submit"
+                          disabled={newTxLoading}
+                          className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2"
+                        >
+                          {newTxLoading ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />} Confirmar Operação
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowCreateTxModal(false)}
+                          className="btn-secondary py-2.5 px-4 text-sm"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* MODAL: Editar Operação (Update) */}
+              {editingTx && (
+                <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+                  <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl animate-in fade-in zoom-in duration-150 border border-border">
+                    <div className="flex items-center justify-between border-b border-border pb-3 mb-4">
+                      <h3 className="text-lg font-bold font-inter flex items-center gap-2 text-indigo-700">
+                        <Pencil className="w-5 h-5" /> Editar Operação #{editingTx.id}
+                      </h3>
+                      <button onClick={() => setEditingTx(null)} className="text-muted-foreground hover:text-foreground">
+                        <X size={18} />
+                      </button>
+                    </div>
+
+                    <form onSubmit={handleSaveEditTx} className="space-y-4">
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Comprador / Cartão</label>
+                        <select
+                          value={editTxData.participantId}
+                          onChange={(e) => setEditTxData({ ...editTxData, participantId: e.target.value })}
+                          className="input-elegant text-sm"
+                        >
+                          {participants.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name || "Sem Nome"} — Cartão #{p.cardNumber || "---"}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">
+                          Valor ({Number(editingTx.amount) < 0 ? 'Débito' : 'Crédito'}) em G$ *
+                        </label>
+                        <input
+                          type="number"
+                          step="1"
+                          value={editTxData.amount}
+                          onChange={(e) => setEditTxData({ ...editTxData, amount: e.target.value })}
+                          className="input-elegant text-sm font-mono font-bold"
+                          required
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          O saldo do participante será ajustado automaticamente pela diferença do valor.
+                        </p>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-bold uppercase text-muted-foreground mb-1">Descrição</label>
+                        <input
+                          type="text"
+                          value={editTxData.description}
+                          onChange={(e) => setEditTxData({ ...editTxData, description: e.target.value })}
+                          className="input-elegant text-sm"
+                        />
+                      </div>
+
+                      <div className="flex gap-2 pt-2">
+                        <button
+                          type="submit"
+                          disabled={editTxLoading}
+                          className="btn-primary flex-1 py-2.5 text-sm flex items-center justify-center gap-2"
+                        >
+                          {editTxLoading ? <Loader2 className="animate-spin" size={16} /> : <Check size={16} />} Salvar Alterações
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingTx(null)}
+                          className="btn-secondary py-2.5 px-4 text-sm"
+                        >
+                          Cancelar
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
