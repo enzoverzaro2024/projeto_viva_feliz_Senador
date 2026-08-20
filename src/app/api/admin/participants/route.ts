@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
+import { db, sql } from "@/lib/db";
 import { participants, users, transactions, attendance } from "@/lib/db/schema";
-import { eq, desc, ilike, or, and, sql, isNotNull } from "drizzle-orm";
+import { eq, desc, ilike, or, and, sql as drizzleSql, isNotNull } from "drizzle-orm";
 import { nanoid } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -12,36 +12,56 @@ export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
     if (!session) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado", participants: [] }, { status: 401 });
     }
     if (session.role !== "admin") {
-      return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
+      return NextResponse.json({ error: "Acesso negado", participants: [] }, { status: 403 });
     }
 
     const url = new URL(req.url);
-    const search = url.searchParams.get("search") || "";
+    const search = (url.searchParams.get("search") || "").trim();
 
     let result;
     if (search) {
-      result = await db.select().from(participants)
-        .where(
-          or(
-            ilike(participants.name, `%${search}%`),
-            ilike(participants.email, `%${search}%`),
-            ilike(participants.cardId, `%${search}%`),
-            ilike(participants.cardNumber, `%${search}%`)
-          )
-        )
-        .orderBy(desc(participants.createdAt));
+      const pattern = `%${search}%`;
+      result = await sql`
+        SELECT * FROM participants
+        WHERE name ILIKE ${pattern}
+           OR email ILIKE ${pattern}
+           OR card_id ILIKE ${pattern}
+           OR card_number ILIKE ${pattern}
+        ORDER BY created_at DESC
+      `;
     } else {
-      result = await db.select().from(participants)
-        .orderBy(desc(participants.createdAt));
+      result = await sql`SELECT * FROM participants ORDER BY CAST(card_number AS INTEGER) ASC NULLS LAST, created_at DESC`;
     }
 
-    return NextResponse.json({ participants: result });
+    // Map snake_case DB columns to camelCase for the frontend
+    const mapped = result.map((p: any) => ({
+      id: p.id,
+      userId: p.user_id,
+      name: p.name,
+      email: p.email,
+      phone: p.phone,
+      age: p.age,
+      address: p.address,
+      neighborhood: p.neighborhood,
+      cardId: p.card_id,
+      cardNumber: p.card_number,
+      pin: p.pin,
+      currentBalance: p.current_balance,
+      processedResgate: p.processed_resgate,
+      processedReforco: p.processed_reforco,
+      resgateNote: p.resgate_note,
+      reforcoNote: p.reforco_note,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    }));
+
+    return NextResponse.json({ participants: mapped });
   } catch (error: any) {
     console.error("Admin list participants error:", error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    return NextResponse.json({ error: "Erro interno: " + error.message, participants: [] }, { status: 500 });
   }
 }
 
