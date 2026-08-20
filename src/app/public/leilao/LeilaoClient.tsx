@@ -107,7 +107,7 @@ export default function LeilaoClient() {
                   }`}>
                     {parseFloat(p.currentBalance).toFixed(0)}
                   </div>
-                  <div className="text-sm font-bold tracking-widest text-white/40 uppercase">PONTOS</div>
+                  <div className="text-sm font-bold tracking-widest text-white/40 uppercase">GUARANÍS (G$)</div>
                 </div>
               </div>
             </div>
@@ -128,7 +128,7 @@ export default function LeilaoClient() {
         <div className="bg-white/5 border border-white/10 rounded-[2.5rem] p-8 backdrop-blur-sm">
           <h2 className="text-xl font-bold font-playfair mb-6 flex items-center gap-2">
             <span className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center text-lg">💰</span>
-            Próximos Participantes
+            Próximos Consumidores
           </h2>
           <div className="flex flex-col gap-3">
             {participants.slice(3, 15).map((p, index) => (
@@ -148,7 +148,7 @@ export default function LeilaoClient() {
                   <div className="text-2xl font-black text-rose-400">
                     {parseFloat(p.currentBalance).toFixed(0)}
                   </div>
-                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">PONTOS</div>
+                  <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter">GUARANÍS (G$)</div>
                 </div>
               </div>
             ))}

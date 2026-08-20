@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
 
     if (!participantId || !amount) {
       return NextResponse.json(
-        { error: "Participante e pontuação são obrigatórios" },
+        { error: "Consumidor e valor são obrigatórios" },
         { status: 400 }
       );
     }
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     if (participantRes.length === 0) {
       return NextResponse.json(
-        { error: "Participante não encontrado" },
+        { error: "Consumidor não encontrado" },
         { status: 404 }
       );
     }

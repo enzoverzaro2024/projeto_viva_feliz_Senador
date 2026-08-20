@@ -70,7 +70,7 @@ export default function AdminDashboard() {
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success(data.message || "Participante cadastrado com sucesso!");
+        toast.success(data.message || "Consumidor cadastrado com sucesso!");
         setCreateParticipantModal(false);
         setNewParticipantData({ name: '', email: '', phone: '', age: '', address: '', neighborhood: '', cardNumber: '' });
         fetchParticipants();
@@ -488,7 +488,7 @@ export default function AdminDashboard() {
       const data = await res.json();
       if (res.ok) setParticipants(data.participants || []);
     } catch {
-      if (!silent) toast.error("Erro ao carregar participantes");
+      if (!silent) toast.error("Erro ao carregar consumidores");
     } finally {
       if (!silent) setLoading(false);
     }
@@ -958,7 +958,7 @@ Te esperamos lá! 🔥`;
   };
 
   const handleDelete = async (id: number, name: string) => {
-    if (!confirm(`Excluir participante "${name}"? Esta ação não pode ser desfeita.`)) return;
+    if (!confirm(`Excluir consumidor "${name}"? Esta ação não pode ser desfeita.`)) return;
     try {
       const res = await fetch("/api/admin/participants", {
         method: "DELETE",
@@ -966,7 +966,7 @@ Te esperamos lá! 🔥`;
         body: JSON.stringify({ participantId: id }),
       });
       if (res.ok) {
-        toast.success("Participante excluído");
+        toast.success("Consumidor excluído");
         fetchParticipants(search);
       } else toast.error("Erro ao excluir");
     } catch { toast.error("Erro ao excluir"); }
@@ -1104,7 +1104,7 @@ Te esperamos lá! 🔥`;
 
   const handleAddPoints = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedParticipant || !pointAmount) { toast.error("Selecione um participante e informe o valor da recarga"); return; }
+    if (!selectedParticipant || !pointAmount) { toast.error("Selecione um consumidor e informe o valor da recarga"); return; }
     setPointLoading(true);
     try {
       const res = await fetch("/api/admin/credits", {
@@ -1125,13 +1125,13 @@ Te esperamos lá! 🔥`;
   };
 
   const exportCSV = () => {
-    const headers = ["Nome", "Email", "Telefone", "Card ID", "Total de Pontos", "Data Criação"];
-    const rows = participants.map((p) => [p.name, p.email, p.phone, p.cardId, `${parseFloat(p.currentBalance).toFixed(0)} pts`, new Date(p.createdAt).toLocaleDateString("pt-BR")]);
+    const headers = ["Nome", "Email", "Telefone", "Card ID", "Saldo em Guaranis (G$)", "Data Criação"];
+    const rows = participants.map((p) => [p.name, p.email, p.phone, p.cardId, `${formatGuarani(p.currentBalance)}`, new Date(p.createdAt).toLocaleDateString("pt-BR")]);
     const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "participantes.csv";
+    link.download = "consumidores.csv";
     link.click();
   };
 
@@ -1147,7 +1147,7 @@ Te esperamos lá! 🔥`;
         "Bairro": p.neighborhood || "",
         "Nº Cartão": p.cardNumber || "",
         "ID Sis (NÃO MUDAR)": p.cardId || "",
-        "Total de Pontos": parseFloat(p.currentBalance).toFixed(2),
+        "Saldo em Guaranis (G$)": parseFloat(p.currentBalance).toFixed(2),
         "Presenças Totais": presences,
         "Criado Em": new Date(p.createdAt).toLocaleDateString("pt-BR")
       };
@@ -1236,7 +1236,7 @@ Te esperamos lá! 🔥`;
       name: p.name
     }));
     if (cardsList.length === 0) {
-      toast.error("Nenhum participante atende a esse filtro/faixa!");
+      toast.error("Nenhum consumidor atende a esse filtro/faixa!");
       return;
     }
     sessionStorage.setItem("printDataMass", JSON.stringify(cardsList));
@@ -1675,10 +1675,10 @@ Te esperamos lá! 🔥`;
           {activeTab === "participantes" && (
             <div className="animate-fade-in">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem', flexWrap: 'wrap', gap: '0.75rem' }}>
-                <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Gerenciar Participantes</h2>
+                <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>Gerenciar Consumidores</h2>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   <button onClick={() => setCreateParticipantModal(true)} className="btn-primary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
-                    <Plus style={{ width: 14, height: 14 }} /> Novo Participante
+                    <Plus style={{ width: 14, height: 14 }} /> Novo Consumidor
                   </button>
                   <button onClick={() => setShowExtraCols(!showExtraCols)} className="btn-secondary" style={{ padding: '0.5rem 1rem', fontSize: '0.85rem' }}>
                     {showExtraCols ? 'Ocultar Detalhes' : 'Mostrar Detalhes'}
@@ -1751,7 +1751,7 @@ Te esperamos lá! 🔥`;
                         * Pode deixar o Nº do Cartão em branco para atribuir depois usando o botão de Trocar Cartão (🔄) na lista abaixo.
                       </p>
                       <button type="submit" disabled={createParticipantLoading} className="btn-primary" style={{ padding: '0.75rem', marginTop: '0.5rem' }}>
-                        {createParticipantLoading ? <Loader2 className="animate-spin m-auto" size={18} /> : "Cadastrar Participante"}
+                        {createParticipantLoading ? <Loader2 className="animate-spin m-auto" size={18} /> : "Cadastrar Consumidor"}
                       </button>
                     </form>
                   </div>
@@ -1940,7 +1940,7 @@ Te esperamos lá! 🔥`;
                               </>
                             )}
                             <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--accent)' }} data-label="Cartão">{p.cardNumber || '---'}</td>
-                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'right' }} data-label="Saldo">{isMounted ? parseFloat(p.currentBalance).toFixed(0) : "0"} pts</td>
+                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 600, textAlign: 'right' }} data-label="Saldo">{isMounted ? formatGuarani(p.currentBalance) : "G$ 0"}</td>
                             <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', fontWeight: 700, textAlign: 'right', color: '#6366f1' }} data-label="Presenças">{isMounted ? allAttendance.filter(a => a.participantId === p.id).length : "0"}</td>
                             <td style={{ padding: '0.6rem 0.5rem', textAlign: 'center' }} className="actions-cell">
                               <div style={{ display: 'flex', gap: '0.3rem', justifyContent: 'center' }}>
@@ -1953,7 +1953,7 @@ Te esperamos lá! 🔥`;
                           </tr>
                         ))}
                         {getSortedFiltered().length === 0 && (
-                          <tr><td colSpan={showExtraCols ? 10 : 5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum participante encontrado</td></tr>
+                          <tr><td colSpan={showExtraCols ? 10 : 5} style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum consumidor encontrado</td></tr>
                         )}
                       </tbody>
                     </table>
@@ -1968,7 +1968,7 @@ Te esperamos lá! 🔥`;
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1.25rem' }}>
                 <div>
                   <h2 style={{ fontSize: '1.4rem', margin: 0, fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>💵 Tesouraria — Recarga de Créditos (G$)</h2>
-                  <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginTop: '0.2rem' }}>Adicione saldo em Guaranis ao cartão do participante após receber o pagamento em dinheiro</p>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--muted-foreground)', marginTop: '0.2rem' }}>Adicione saldo em Guaranis ao cartão do consumidor após receber o pagamento em dinheiro</p>
                 </div>
               </div>
               <div className="card-elegant">
@@ -2312,7 +2312,7 @@ Te esperamos lá! 🔥`;
                           required
                         />
                         <p className="text-[11px] text-muted-foreground mt-1">
-                          O saldo do participante será ajustado automaticamente pela diferença do valor.
+                          O saldo do consumidor será ajustado automaticamente pela diferença do valor.
                         </p>
                       </div>
 
@@ -2352,7 +2352,7 @@ Te esperamos lá! 🔥`;
           {/* ===== Tab: Ranking ===== */}
           {activeTab === "ranking" && (
             <div className="animate-fade-in">
-              <h2 style={{ fontSize: '1.4rem', marginBottom: '1.25rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>🏆 Ranking de Pontos</h2>
+              <h2 style={{ fontSize: '1.4rem', marginBottom: '1.25rem', fontFamily: 'Inter, sans-serif', fontWeight: 700 }}>🏆 Ranking de Saldo (G$)</h2>
               <div className="table-responsive-container card-elegant" style={{ padding: 0 }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
                     <thead>
@@ -2373,13 +2373,13 @@ Te esperamos lá! 🔥`;
                             </td>
                             <td style={{ padding: '0.75rem 1rem', fontSize: '0.9rem', fontWeight: index < 3 ? 600 : 400 }} data-label="Nome">{p.name}</td>
                             <td style={{ padding: '0.75rem 1rem', fontSize: '0.85rem', fontFamily: 'monospace', color: 'var(--accent)' }} data-label="Cartão">{p.cardNumber || '---'}</td>
-                            <td style={{ padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 800, textAlign: 'right', color: 'var(--accent)' }} data-label="Pontos">
-                              {parseFloat(p.currentBalance).toFixed(0)} pts
+                            <td style={{ padding: '0.75rem 1rem', fontSize: '1rem', fontWeight: 800, textAlign: 'right', color: 'var(--accent)' }} data-label="Saldo (G$)">
+                              {formatGuarani(p.currentBalance)}
                             </td>
                           </tr>
                         ))}
                       {participants.length === 0 && (
-                        <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum participante encontrado</td></tr>
+                        <tr><td colSpan={4} style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted-foreground)' }}>Nenhum consumidor encontrado</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -2829,7 +2829,7 @@ Te esperamos lá! 🔥`;
                   />
                 </div>
                 <div>
-                  <label className="label-elegant">🏅 Regras de Pontos da Noite</label>
+                  <label className="label-elegant">🏅 Regras de Guaranis (G$) da Noite</label>
                   <textarea
                     value={eventInfo.tonightPoints}
                     onChange={(e) => setEventInfo({ ...eventInfo, tonightPoints: e.target.value })}
@@ -2838,7 +2838,7 @@ Te esperamos lá! 🔥`;
                   />
                 </div>
                 <div>
-                  <label className="label-elegant">📍 Pontos por Presença (Automático no Scan)</label>
+                  <label className="label-elegant">📍 Guaranis por Presença (Automático no Scan)</label>
                   <input
                     type="number"
                     value={eventInfo.attPoints || "50"}
@@ -2851,7 +2851,7 @@ Te esperamos lá! 🔥`;
                     <QrCode style={{ width: 18, height: 18 }} /> 📱 MENSAGEM FINAL PARA WHATSAPP
                   </label>
                   <p style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '0.3rem' }}>
-                    Esta mensagem será usada no envio para os participantes. Clique nas tags abaixo para inseri-las no texto:
+                    Esta mensagem será usada no envio para os consumidores. Clique nas tags abaixo para inseri-las no texto:
                   </p>
                   
                   {/* Chips de Tags disponíveis */}
@@ -2910,7 +2910,7 @@ Te esperamos lá! 🔥`;
                   {/* Live Preview Box */}
                   <div className="mt-4 p-4 bg-emerald-50/70 border border-emerald-200 rounded-xl shadow-sm">
                     <p className="text-xs font-bold text-emerald-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <span>💬</span> Pré-visualização para um participante (Exemplo: "Maria"):
+                      <span>💬</span> Pré-visualização para um consumidor (Exemplo: "Maria"):
                     </p>
                     <div className="text-sm text-gray-800 whitespace-pre-line font-sans bg-white p-3.5 rounded-lg border border-emerald-100 shadow-inner">
                       {formatWhatsAppMessage(eventInfo.customMessage, eventInfo, "Maria")}
@@ -3476,7 +3476,7 @@ Te esperamos lá! 🔥`;
                   <table style={{ width: '100%', borderCollapse: 'collapse' }} className="mobile-card-table">
                     <thead>
                       <tr style={{ borderBottom: '2px solid var(--border)', background: 'rgba(0,0,0,0.02)' }}>
-                        <th style={{ textAlign: 'left', padding: '1rem' }}>Participante</th>
+                        <th style={{ textAlign: 'left', padding: '1rem' }}>Consumidor</th>
                         <th style={{ textAlign: 'left', padding: '1rem' }}>Cartão</th>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Presenças Totais</th>
                         <th style={{ textAlign: 'center', padding: '1rem' }}>Ações</th>
@@ -3489,7 +3489,7 @@ Te esperamos lá! 🔥`;
 
                           return (
                             <tr key={p.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                              <td style={{ padding: '1rem' }} data-label="Participante">
+                              <td style={{ padding: '1rem' }} data-label="Consumidor">
                                 <div style={{ fontWeight: 600 }}>{p.name || `Cartão #${p.cardNumber || '???'}`}</div>
                                 <div style={{ fontSize: '0.75rem', color: 'var(--muted-foreground)' }}>{p.email}</div>
                               </td>
@@ -3619,7 +3619,7 @@ Te esperamos lá! 🔥`;
             
             <p style={{ fontSize: '0.85rem', color: '#6b7280', marginBottom: '1.25rem', lineHeight: '1.4' }}>
               Isso vinculará um <strong>novo QR Code</strong> para <strong>{transferParticipant.name}</strong>. 
-              O saldo de pontos e histórico serão preservados intactos.
+              O saldo em Guaranis e histórico serão preservados intactos.
             </p>
             
             <div style={{ marginBottom: '1.5rem' }}>
@@ -3683,7 +3683,7 @@ Te esperamos lá! 🔥`;
           <div className="card-elegant animate-scale-up" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', border: '2px solid var(--accent)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem', borderBottom: '1px solid var(--border)', paddingBottom: '0.75rem' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 800, margin: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <Pencil size={18} className="text-accent" /> Editar Participante
+                <Pencil size={18} className="text-accent" /> Editar Consumidor
               </h3>
               <button onClick={cancelEdit} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={24} /></button>
             </div>
@@ -3704,7 +3704,7 @@ Te esperamos lá! 🔥`;
                   <input value={editData.pin} maxLength={4} placeholder="1234" onChange={(e) => setEditData({...editData, pin: e.target.value})} className="input-elegant font-mono font-bold" style={{ textAlign: 'center', color: '#10b981', border: '2px solid #10b981', background: 'rgba(16, 185, 129, 0.05)', padding: '0.5rem' }} />
                 </div>
                 <div>
-                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Saldo (Pts)</label>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Saldo (G$)</label>
                   <input type="number" value={editData.balance} onChange={(e) => setEditData({...editData, balance: e.target.value})} className="input-elegant" style={{ padding: '0.5rem' }} />
                 </div>
                 <div>
@@ -3778,7 +3778,7 @@ Te esperamos lá! 🔥`;
                 <li>Apaga <strong>todas as transações</strong> (recargas e vendas nas bancas).</li>
                 <li>Redefine o <strong>saldo de todos os cartões para G$ 0</strong>.</li>
                 <li>Limpa todos os relatórios de vendas de teste.</li>
-                <li><em>Os cadastros dos participantes e números de cartão continuam 100% preservados.</em></li>
+                <li><em>Os cadastros dos consumidores e números de cartão continuam 100% preservados.</em></li>
               </ul>
             </div>
 

@@ -78,7 +78,7 @@ export async function DELETE(req: NextRequest) {
 
     const { participantId } = await req.json();
     if (!participantId) {
-      return NextResponse.json({ error: "ID do participante obrigatório" }, { status: 400 });
+      return NextResponse.json({ error: "ID do consumidor obrigatório" }, { status: 400 });
     }
 
     // Delete related transactions first
@@ -118,7 +118,7 @@ export async function PATCH(req: NextRequest) {
     } = body;
     
     if (!participantId && !resetAllProcessed) {
-      return NextResponse.json({ error: "ID do participante obrigatório" }, { status: 400 });
+      return NextResponse.json({ error: "ID do consumidor obrigatório" }, { status: 400 });
     }
 
     // Lógica de Trava (Lock) para evitar envios duplicados

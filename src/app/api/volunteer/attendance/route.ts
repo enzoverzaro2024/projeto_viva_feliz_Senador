@@ -15,13 +15,13 @@ export async function POST(req: NextRequest) {
     const { participantId, date, addPoints, description } = await req.json();
 
     if (!participantId) {
-      return NextResponse.json({ error: "Participante obrigatório" }, { status: 400 });
+      return NextResponse.json({ error: "Consumidor obrigatório" }, { status: 400 });
     }
 
     // Check if participant exists
     const participant = await db.select().from(participants).where(eq(participants.id, participantId)).limit(1);
     if (participant.length === 0) {
-      return NextResponse.json({ error: "Participante não encontrado" }, { status: 404 });
+      return NextResponse.json({ error: "Consumidor não encontrado" }, { status: 404 });
     }
 
     // Date logic (default now or provided for retroactive)
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
         participantId,
         volunteerId: session.userId,
         amount: pointsToGive.toString(),
-        description: description || "Pontos de Presença",
+        description: description || "Guaranis de Presença",
         createdAt: recordDate
       });
 
@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ 
       success: true, 
-      message: `Presença registrada! ${pointsToGive > 0 ? `+${pointsToGive} pts ganhos.` : '(Sem pontos adicionados)'}` 
+      message: `Presença registrada! ${pointsToGive > 0 ? `+${pointsToGive} G$ creditados.` : '(Sem saldo adicionado)'}` 
     });
   } catch (error) {
     console.error("Attendance error:", error);

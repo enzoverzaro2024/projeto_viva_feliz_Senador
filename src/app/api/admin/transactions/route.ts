@@ -49,7 +49,7 @@ export async function POST(req: NextRequest) {
     const { participantId, amount, description, type } = body;
 
     if (!participantId || !amount) {
-      return NextResponse.json({ error: "Participante e valor são obrigatórios" }, { status: 400 });
+      return NextResponse.json({ error: "Consumidor e valor são obrigatórios" }, { status: 400 });
     }
 
     const numericAmount = parseFloat(amount);

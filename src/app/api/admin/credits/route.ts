@@ -18,14 +18,14 @@ export async function POST(req: NextRequest) {
     const { participantId, amount, description } = await req.json();
 
     if (!participantId || !amount) {
-      return NextResponse.json({ error: "Participante e pontuação obrigatórios" }, { status: 400 });
+      return NextResponse.json({ error: "Consumidor e valor são obrigatórios" }, { status: 400 });
     }
 
     const participant = await db.select().from(participants)
       .where(eq(participants.id, participantId)).limit(1);
 
     if (participant.length === 0) {
-      return NextResponse.json({ error: "Participante não encontrado" }, { status: 404 });
+      return NextResponse.json({ error: "Consumidor não encontrado" }, { status: 404 });
     }
 
     // Create transaction
