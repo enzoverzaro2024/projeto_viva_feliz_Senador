@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { participants, users } from "@/lib/db/schema";
-import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
+import { db, sql } from "@/lib/db";
+import { participants } from "@/lib/db/schema";
+import { ilike, or, desc } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import postgres from "postgres";
 
 export const maxDuration = 30;
 
@@ -17,9 +16,6 @@ export async function POST(req: NextRequest) {
     }
 
     const { quantity, specificNumber } = await req.json();
-
-    const conn = process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-    const sql = postgres(conn, { ssl: "require", max: 5 });
 
     // Verify admin user ID
     let adminUserId = session.userId;
@@ -39,7 +35,6 @@ export async function POST(req: NextRequest) {
         const hasNoBalance = parseFloat(conflict.current_balance) === 0;
 
         if (isGeneric && hasNoBalance) {
-          await sql.end();
           return NextResponse.json({
             success: true,
             message: `Cartão ${paddedSpecific} já existe em branco e foi recuperado!`,
@@ -47,7 +42,6 @@ export async function POST(req: NextRequest) {
           });
         }
 
-        await sql.end();
         return NextResponse.json({ 
           error: `O cartão ${paddedSpecific} já pertence a "${conflict.name}".` 
         }, { status: 400 });
@@ -61,7 +55,6 @@ export async function POST(req: NextRequest) {
         VALUES (${adminUserId}, '', ${uniqueEmail}, '---', ${cardId}, ${paddedSpecific}, '0')
       `;
 
-      await sql.end();
       return NextResponse.json({
         success: true,
         message: `Cartão ${paddedSpecific} gerado com sucesso!`,
@@ -127,8 +120,6 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    await sql.end();
-
     return NextResponse.json({
       success: true,
       message: `¡${created.length} cartões gerados com sucesso!`,
@@ -166,14 +157,8 @@ export async function GET(req: NextRequest) {
       result = await db.select().from(participants)
         .where(
           or(
-            eq(participants.name, ""),
-            and(
-              ilike(participants.name, "Cartão #%"),
-              or(
-                eq(participants.currentBalance, "0"),
-                eq(participants.currentBalance, "0.00")
-              )
-            )
+            ilike(participants.name, ""),
+            ilike(participants.name, "Cartão #%")
           )
         )
         .orderBy(desc(participants.createdAt));
