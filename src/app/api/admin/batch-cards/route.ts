@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { participants, users } from "@/lib/db/schema";
 import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import postgres from "postgres";
 
 export const maxDuration = 30;
 
@@ -17,53 +18,50 @@ export async function POST(req: NextRequest) {
 
     const { quantity, specificNumber } = await req.json();
 
-    // Ensure valid admin user ID in DB
+    const conn = process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+    const sql = postgres(conn, { ssl: "require", max: 5 });
+
+    // Verify admin user ID
     let adminUserId = session.userId;
-    const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, adminUserId)).limit(1);
-    if (userCheck.length === 0) {
-      const anyAdmin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
-      if (anyAdmin.length > 0) adminUserId = anyAdmin[0].id;
+    const [userExists] = await sql`SELECT id FROM users WHERE id = ${adminUserId} LIMIT 1`;
+    if (!userExists) {
+      const [anyAdmin] = await sql`SELECT id FROM users WHERE role = 'admin' LIMIT 1`;
+      if (anyAdmin) adminUserId = anyAdmin.id;
     }
 
     if (specificNumber) {
       const paddedSpecific = String(specificNumber).padStart(3, "0");
       
-      const conflict = await db.select()
-        .from(participants)
-        .where(eq(participants.cardNumber, paddedSpecific))
-        .limit(1);
+      const [conflict] = await sql`SELECT id, name, current_balance, card_id FROM participants WHERE card_number = ${paddedSpecific} LIMIT 1`;
 
-      if (conflict.length > 0) {
-        const owner = conflict[0];
-        const isGeneric = owner.name === "" || owner.name.startsWith("Cartão #");
-        const hasNoBalance = parseFloat(owner.currentBalance) === 0;
+      if (conflict) {
+        const isGeneric = conflict.name === "" || conflict.name.startsWith("Cartão #");
+        const hasNoBalance = parseFloat(conflict.current_balance) === 0;
 
         if (isGeneric && hasNoBalance) {
+          await sql.end();
           return NextResponse.json({
             success: true,
             message: `Cartão ${paddedSpecific} já existe em branco e foi recuperado!`,
-            cards: [{ num: paddedSpecific, cardId: owner.cardId, name: `Cartão #${paddedSpecific}`, cardNumber: paddedSpecific }]
+            cards: [{ num: paddedSpecific, cardId: conflict.card_id, name: `Cartão #${paddedSpecific}`, cardNumber: paddedSpecific }]
           });
         }
 
+        await sql.end();
         return NextResponse.json({ 
-          error: `O cartão ${paddedSpecific} já pertence a "${owner.name}".` 
+          error: `O cartão ${paddedSpecific} já pertence a "${conflict.name}".` 
         }, { status: 400 });
       }
 
       const cardId = `EC-${paddedSpecific}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const uniqueEmail = `cartao${paddedSpecific}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
-      await db.insert(participants).values({
-        userId: adminUserId,
-        name: "",
-        email: uniqueEmail,
-        phone: "---",
-        cardId,
-        cardNumber: paddedSpecific,
-        currentBalance: "0",
-      });
+      await sql`
+        INSERT INTO participants (user_id, name, email, phone, card_id, card_number, current_balance)
+        VALUES (${adminUserId}, '', ${uniqueEmail}, '---', ${cardId}, ${paddedSpecific}, '0')
+      `;
 
+      await sql.end();
       return NextResponse.json({
         success: true,
         message: `Cartão ${paddedSpecific} gerado com sucesso!`,
@@ -73,16 +71,14 @@ export async function POST(req: NextRequest) {
 
     const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 500);
 
-    // Fetch existing card numbers to find the highest number
-    const existing = await db.select({ cardNumber: participants.cardNumber })
-      .from(participants)
-      .where(isNotNull(participants.cardNumber));
+    // Fetch all existing card numbers
+    const existingCards = await sql`SELECT card_number FROM participants WHERE card_number IS NOT NULL`;
 
     const takenNumbersSet = new Set<number>();
     let maxNum = 0;
-    for (const p of existing) {
-      if (p.cardNumber) {
-        const parsed = parseInt(p.cardNumber, 10);
+    for (const p of existingCards) {
+      if (p.card_number) {
+        const parsed = parseInt(p.card_number, 10);
         if (!isNaN(parsed)) {
           takenNumbersSet.add(parsed);
           if (parsed > maxNum) maxNum = parsed;
@@ -91,15 +87,7 @@ export async function POST(req: NextRequest) {
     }
 
     const created = [];
-    const allToInsert: {
-      userId: number;
-      name: string;
-      email: string;
-      phone: string;
-      cardId: string;
-      cardNumber: string;
-      currentBalance: string;
-    }[] = [];
+    const allToInsert: any[] = [];
     let currentNum = maxNum + 1;
 
     while (created.length < qty) {
@@ -112,29 +100,34 @@ export async function POST(req: NextRequest) {
       const cardId = `EC-${padded}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
-      allToInsert.push({
-        userId: adminUserId,
-        name: "",
-        email: uniqueEmail,
-        phone: "---",
+      allToInsert.push([
+        adminUserId,
+        "",
+        uniqueEmail,
+        "---",
         cardId,
-        cardNumber: padded,
-        currentBalance: "0",
-      });
+        padded,
+        "0",
+      ]);
 
       takenNumbersSet.add(currentNum);
       created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
       currentNum++;
     }
 
-    // Insert in chunks of 50 to prevent parameter limits
+    // Insert in chunks of 50 using native postgres bulk insert
     if (allToInsert.length > 0) {
       const chunkSize = 50;
       for (let i = 0; i < allToInsert.length; i += chunkSize) {
         const chunk = allToInsert.slice(i, i + chunkSize);
-        await db.insert(participants).values(chunk);
+        await sql`
+          INSERT INTO participants (user_id, name, email, phone, card_id, card_number, current_balance)
+          VALUES ${sql(chunk)}
+        `;
       }
     }
+
+    await sql.end();
 
     return NextResponse.json({
       success: true,
