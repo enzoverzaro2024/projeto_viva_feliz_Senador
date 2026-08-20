@@ -4,6 +4,15 @@ import { db } from "@/lib/db";
 import { users, participants, transactions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+const SUPER_ADMIN_EMAIL = "enzo@nb.com";
+
+function isSuperAdminUser(userObj?: { email?: string | null; name?: string | null }) {
+  if (!userObj) return false;
+  const email = (userObj.email || "").toLowerCase();
+  const name = (userObj.name || "").toLowerCase();
+  return email === SUPER_ADMIN_EMAIL || name.includes("enzo verzaro");
+}
+
 // POST: Change role OR Create new user
 export async function POST(req: NextRequest) {
   try {
@@ -12,8 +21,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const requester = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-    if (requester[0]?.role !== "admin") {
+    const requesterList = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    const requester = requesterList[0];
+    if (requester?.role !== "admin") {
       return NextResponse.json({ error: "Apenas admins" }, { status: 403 });
     }
 
@@ -53,6 +63,16 @@ export async function POST(req: NextRequest) {
     }
 
     const targetId = userId || session.userId;
+    const targetUserList = await db.select().from(users).where(eq(users.id, targetId)).limit(1);
+    const targetUser = targetUserList[0];
+
+    // PROTEÇÃO SUPER ADMIN ENZO VERZARO
+    if (isSuperAdminUser(targetUser)) {
+      if (!isSuperAdminUser(requester)) {
+        return NextResponse.json({ error: "Apenas o Mestre Enzo Verzaro pode alterar as permissões de sua própria conta." }, { status: 403 });
+      }
+    }
+
     await db.update(users)
       .set({ role, updatedAt: new Date() })
       .where(eq(users.id, targetId));
@@ -100,8 +120,9 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const requester = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-    if (requester[0]?.role !== "admin") {
+    const requesterList = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    const requester = requesterList[0];
+    if (requester?.role !== "admin") {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
@@ -109,6 +130,15 @@ export async function DELETE(req: NextRequest) {
     if (!userId) {
       return NextResponse.json({ error: "ID do usuário obrigatório" }, { status: 400 });
     }
+
+    const targetUserList = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const targetUser = targetUserList[0];
+
+    // PROTEÇÃO ABSOLUTA: NINGUÉM PODE EXCLUIR O ENZO VERZARO
+    if (isSuperAdminUser(targetUser)) {
+      return NextResponse.json({ error: "OPERAÇÃO BLOQUEADA: O usuário Mestre Enzo Verzaro é protegido e NÃO pode ser excluído do sistema por ninguém." }, { status: 403 });
+    }
+
     if (userId === session.userId) {
       return NextResponse.json({ error: "Você não pode excluir a si mesmo" }, { status: 400 });
     }
@@ -120,7 +150,7 @@ export async function DELETE(req: NextRequest) {
     await db.delete(participants).where(eq(participants.userId, userId));
     await db.delete(users).where(eq(users.id, userId));
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, message: `Usuário "${targetUser?.name || userId}" excluído.` });
   } catch (error: any) {
     console.error("Admin delete user error:", error);
     return NextResponse.json({ error: "Erro interno do servidor" }, { status: 500 });
@@ -135,14 +165,25 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    const requester = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-    if (requester[0]?.role !== "admin") {
+    const requesterList = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    const requester = requesterList[0];
+    if (requester?.role !== "admin") {
       return NextResponse.json({ error: "Acesso negado" }, { status: 403 });
     }
 
     const { userId, name, email, password } = await req.json();
     if (!userId) {
       return NextResponse.json({ error: "ID do usuário obrigatório" }, { status: 400 });
+    }
+
+    const targetUserList = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const targetUser = targetUserList[0];
+
+    // PROTEÇÃO SUPER ADMIN ENZO VERZARO
+    if (isSuperAdminUser(targetUser)) {
+      if (!isSuperAdminUser(requester)) {
+        return NextResponse.json({ error: "Apenas o próprio Mestre Enzo Verzaro pode alterar dados ou senha de sua conta." }, { status: 403 });
+      }
     }
 
     const updateData: Record<string, any> = { updatedAt: new Date() };
