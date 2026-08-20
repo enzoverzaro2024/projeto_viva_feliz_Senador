@@ -64,24 +64,20 @@ export async function POST(req: NextRequest) {
 
     const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 500);
 
-    // Fetch all existing card numbers
+    // Fetch all existing card numbers to find available slots starting from 001
     const existingCards = await sql`SELECT card_number FROM participants WHERE card_number IS NOT NULL`;
 
     const takenNumbersSet = new Set<number>();
-    let maxNum = 0;
     for (const p of existingCards) {
       if (p.card_number) {
         const parsed = parseInt(p.card_number, 10);
-        if (!isNaN(parsed)) {
-          takenNumbersSet.add(parsed);
-          if (parsed > maxNum) maxNum = parsed;
-        }
+        if (!isNaN(parsed)) takenNumbersSet.add(parsed);
       }
     }
 
     const created = [];
     const allToInsert: any[] = [];
-    let currentNum = maxNum + 1;
+    let currentNum = 1; // Always start from 001 — fill gaps first
 
     while (created.length < qty) {
       if (takenNumbersSet.has(currentNum)) {
@@ -92,10 +88,11 @@ export async function POST(req: NextRequest) {
       const padded = String(currentNum).padStart(3, "0");
       const cardId = `EC-${padded}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
+      const cardName = `Cartão #${padded}`; // Name set so they appear in Compradores list
 
       allToInsert.push([
         adminUserId,
-        "",
+        cardName,  // populated name so card shows in buyers list
         uniqueEmail,
         "---",
         cardId,
@@ -104,7 +101,7 @@ export async function POST(req: NextRequest) {
       ]);
 
       takenNumbersSet.add(currentNum);
-      created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
+      created.push({ num: padded, cardId, name: cardName, cardNumber: padded });
       currentNum++;
     }
 
