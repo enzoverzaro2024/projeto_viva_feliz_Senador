@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import { Toaster } from "sonner";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { LanguageProvider } from "@/contexts/LanguageContext";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Viva Feliz - Sistema de Eventos",
-  description: "Sistema elegante e seguro para gerenciar cartões virtuais e créditos em eventos de igreja.",
-  keywords: ["evento", "créditos", "cartão virtual", "QR code", "igreja"],
+  title: "Sistema Financeiro - Cartões & Recargas G$",
+  description: "Sistema elegante e seguro para gerenciar cartões virtuais e créditos em eventos e feiras.",
+  keywords: ["evento", "créditos", "cartão virtual", "QR code", "feira", "guarani"],
 };
 
 export default function RootLayout({
@@ -18,8 +19,10 @@ export default function RootLayout({
     <html lang="pt-BR" suppressHydrationWarning>
       <body suppressHydrationWarning>
         <AuthProvider>
-          {children}
-          <Toaster richColors position="top-right" />
+          <LanguageProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </LanguageProvider>
         </AuthProvider>
       </body>
     </html>

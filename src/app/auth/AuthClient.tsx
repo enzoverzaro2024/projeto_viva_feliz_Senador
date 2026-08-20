@@ -2,9 +2,10 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { CreditCard, Lock, Mail, User, ShieldCheck, ArrowRight, Loader2, Sparkles } from "lucide-react";
+import { CreditCard, Lock, Mail, User, ShieldCheck, ArrowRight, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { LanguageSwitcher } from "@/contexts/LanguageContext";
 
 export default function AuthClient() {
   const { user, isAuthenticated, login, register } = useAuth();
@@ -54,12 +55,12 @@ export default function AuthClient() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col justify-between selection:bg-emerald-500 selection:text-slate-900 font-sans relative overflow-hidden">
-      {/* Background Decorative Glow Effects */}
-      <div className="absolute top-[-10%] left-[-10%] w-[500px] h-[500px] bg-blue-600/15 rounded-full blur-[140px] pointer-events-none" />
-      <div className="absolute bottom-[-10%] right-[-10%] w-[500px] h-[500px] bg-emerald-600/15 rounded-full blur-[140px] pointer-events-none" />
+      {/* Background Glows */}
+      <div className="absolute top-[-10%] left-[-10%] w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-10%] w-[600px] h-[600px] bg-emerald-600/10 rounded-full blur-[150px] pointer-events-none" />
 
       {/* Top Navbar */}
-      <header className="relative z-10 border-b border-slate-800/80 bg-slate-900/60 backdrop-blur-xl">
+      <header className="relative z-10 border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-xl">
         <div className="container py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
@@ -75,9 +76,12 @@ export default function AuthClient() {
             </div>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-xs font-medium text-emerald-400 bg-emerald-950/60 px-3 py-1.5 rounded-full border border-emerald-800/50">
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-            Acesso Seguro Criptografado
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:flex items-center gap-2 text-xs font-semibold text-emerald-400 bg-emerald-950/60 px-3.5 py-1.5 rounded-full border border-emerald-800/60 shadow-sm">
+              <ShieldCheck className="w-4 h-4 text-emerald-400" />
+              Acesso Seguro Criptografado
+            </div>
+            <LanguageSwitcher />
           </div>
         </div>
       </header>
@@ -85,18 +89,18 @@ export default function AuthClient() {
       {/* Main Login Form Section */}
       <main className="relative z-10 flex-1 flex items-center justify-center p-4 py-12">
         <div className="w-full max-w-md">
-          <div className="bg-slate-900/90 backdrop-blur-2xl border border-slate-800 rounded-3xl p-8 shadow-2xl shadow-black/80 relative overflow-hidden">
+          <div className="bg-slate-900/95 backdrop-blur-2xl border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl shadow-black/90 relative overflow-hidden">
             {/* Top Accent Bar */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-indigo-500 to-blue-500" />
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-indigo-500 to-teal-500" />
 
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700/60 mb-4 shadow-inner">
+            <div className="text-center mb-8 pt-2">
+              <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-slate-800/90 border border-slate-700/80 mb-4 shadow-inner">
                 <Lock className="w-7 h-7 text-emerald-400" />
               </div>
               <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white mb-2 font-inter">
                 {isLogin ? "Acessar Conta" : "Criar Nova Conta"}
               </h2>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-400 text-xs sm:text-sm">
                 {isLogin
                   ? "Informe suas credenciais financeiras para entrar"
                   : "Preencha os dados abaixo para registrar sua conta"}
@@ -106,11 +110,11 @@ export default function AuthClient() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {!isLogin && (
                 <div className="space-y-1.5">
-                  <label className="block text-xs font-bold uppercase text-slate-400 tracking-wider">
+                  <label className="block text-xs font-bold uppercase text-slate-300 tracking-wider">
                     Nome Completo
                   </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <div className="flex items-center gap-3 bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                    <User className="w-4 h-4 text-slate-400 shrink-0" />
                     <input
                       name="name"
                       type="text"
@@ -118,18 +122,18 @@ export default function AuthClient() {
                       value={formData.name}
                       onChange={handleChange}
                       required={!isLogin}
-                      className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-sans"
+                      className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none border-none p-0 font-sans"
                     />
                   </div>
                 </div>
               )}
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase text-slate-400 tracking-wider">
+                <label className="block text-xs font-bold uppercase text-slate-300 tracking-wider">
                   Email ou Nº do Cartão
                 </label>
-                <div className="relative">
-                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="flex items-center gap-3 bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                  <Mail className="w-4 h-4 text-slate-400 shrink-0" />
                   <input
                     name="email"
                     type="text"
@@ -137,17 +141,17 @@ export default function AuthClient() {
                     value={formData.email}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-sans"
+                    className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none border-none p-0 font-sans"
                   />
                 </div>
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-xs font-bold uppercase text-slate-400 tracking-wider">
+                <label className="block text-xs font-bold uppercase text-slate-300 tracking-wider">
                   Senha de Acesso
                 </label>
-                <div className="relative">
-                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <div className="flex items-center gap-3 bg-slate-950/90 border border-slate-800 rounded-xl px-3.5 py-3 focus-within:border-emerald-500 focus-within:ring-2 focus-within:ring-emerald-500/20 transition-all">
+                  <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                   <input
                     name="password"
                     type="password"
@@ -155,7 +159,7 @@ export default function AuthClient() {
                     value={formData.password}
                     onChange={handleChange}
                     required
-                    className="w-full pl-10 pr-4 py-3 bg-slate-950/80 border border-slate-800 rounded-xl text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all font-sans"
+                    className="w-full bg-transparent text-sm text-white placeholder-slate-500 focus:outline-none border-none p-0 font-sans"
                   />
                 </div>
               </div>
@@ -163,7 +167,7 @@ export default function AuthClient() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-bold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
+                className="w-full py-3.5 mt-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-sm rounded-xl shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-[0.99]"
               >
                 {isLoading ? (
                   <Loader2 className="w-5 h-5 animate-spin text-slate-950" />

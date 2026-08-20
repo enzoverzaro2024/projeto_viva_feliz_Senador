@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { formatGuarani } from "@/lib/utils";
 import { QRCodeCanvas } from "qrcode.react";
 import Papa from "papaparse";
+import { LanguageSwitcher, useLanguage } from "@/contexts/LanguageContext";
 
 interface ParticipantData {
   id: number;
@@ -1451,6 +1452,7 @@ Te esperamos lá! 🔥`;
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <LanguageSwitcher />
             <button
               onClick={() => router.push("/volunteer/scanner")}
               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer"
