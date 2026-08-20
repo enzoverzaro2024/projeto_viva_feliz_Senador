@@ -99,6 +99,35 @@ export default function AdminDashboard() {
   const [editUserData, setEditUserData] = useState({ name: "", email: "", password: "" });
   const [editUserLoading, setEditUserLoading] = useState(false);
 
+  // Super Admin Reset Transactions Modal
+  const [resetTransactionsModal, setResetTransactionsModal] = useState(false);
+  const [resetTransactionsLoading, setResetTransactionsLoading] = useState(false);
+  const [resetConfirmWord, setResetConfirmWord] = useState("");
+
+  const handleResetTransactions = async () => {
+    setResetTransactionsLoading(true);
+    try {
+      const res = await fetch("/api/admin/reset-transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(data.message || "Movimentações zeradas com sucesso!");
+        setResetTransactionsModal(false);
+        setResetConfirmWord("");
+        fetchParticipants();
+        fetchTransactions();
+      } else {
+        toast.error(data.error || "Erro ao zerar movimentações");
+      }
+    } catch {
+      toast.error("Erro de conexão ao zerar movimentações");
+    } finally {
+      setResetTransactionsLoading(false);
+    }
+  };
+
   // Create user state
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [newUser, setNewUser] = useState({ name: "", email: "", password: "", role: "user" });
@@ -2420,6 +2449,41 @@ Te esperamos lá! 🔥`;
                   >
                     {eventInfoLoading ? <Loader2 className="animate-spin" size={14} /> : <><Check size={14} /> Salvar Configurações de Acesso</>}
                   </button>
+
+                  {/* DANGER ZONE - SUPER ADMIN TEST RESET */}
+                  <div style={{ marginTop: '1.25rem', paddingTop: '1rem', borderTop: '1px dashed #fecdd3', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem' }}>
+                    <div>
+                      <p style={{ margin: 0, fontWeight: 700, fontSize: '0.85rem', color: '#be123c', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                        ⚠️ Zona de Testes: Limpar Movimentações
+                      </p>
+                      <p style={{ margin: 0, fontSize: '0.75rem', color: '#881337' }}>
+                        Zera todas as recargas, compras e reseta o saldo de todos os cartões para G$ 0.
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setResetConfirmWord("");
+                        setResetTransactionsModal(true);
+                      }}
+                      className="cursor-pointer"
+                      style={{
+                        padding: '0.5rem 1rem',
+                        fontSize: '0.8rem',
+                        fontWeight: 800,
+                        background: '#fff1f2',
+                        color: '#be123c',
+                        border: '1.5px solid #fda4af',
+                        borderRadius: '0.5rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.4rem',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      🗑️ Zerar Todas as Recargas & Vendas
+                    </button>
+                  </div>
                 </div>
               )}
 
@@ -3683,6 +3747,90 @@ Te esperamos lá! 🔥`;
                 </button>
                 <button onClick={cancelEdit} className="btn-secondary" style={{ padding: '0.8rem 1.25rem' }}>Cancelar</button>
               </div>
+            </div>
+          </div>
+      {/* ===== MODAL DE CONFIRMAÇÃO DE RESET GERAL DE TESTES (SUPER ADMIN) ===== */}
+      {resetTransactionsModal && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
+          <div className="card-elegant animate-fade-in" style={{ maxWidth: '460px', width: '100%', border: '2px solid #ef4444', background: '#ffffff', borderRadius: '1.25rem', padding: '1.5rem', boxShadow: '0 25px 50px -12px rgba(239, 68, 68, 0.35)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+              <div style={{ width: '2.75rem', height: '2.75rem', borderRadius: '0.85rem', background: '#fee2e2', color: '#dc2626', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.4rem', fontWeight: 800 }}>
+                ⚠️
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 800, color: '#991b1b', fontFamily: 'Inter, sans-serif' }}>
+                  Zerar Todas as Movimentações?
+                </h3>
+                <p style={{ margin: 0, fontSize: '0.75rem', color: '#6b7280' }}>
+                  Ação exclusiva do Super Admin (Enzo)
+                </p>
+              </div>
+            </div>
+
+            <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: '0.75rem', padding: '0.85rem', marginBottom: '1rem', fontSize: '0.8rem', color: '#7f1d1d', lineHeight: 1.5 }}>
+              <p style={{ margin: '0 0 0.5rem 0', fontWeight: 700 }}>
+                🚨 Esta ação é permanente e irreversível:
+              </p>
+              <ul style={{ margin: 0, paddingLeft: '1.25rem' }}>
+                <li>Apaga <strong>todas as transações</strong> (recargas e vendas nas bancas).</li>
+                <li>Redefine o <strong>saldo de todos os cartões para G$ 0</strong>.</li>
+                <li>Limpa todos os relatórios de vendas de teste.</li>
+                <li><em>Os cadastros dos participantes e números de cartão continuam 100% preservados.</em></li>
+              </ul>
+            </div>
+
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 700, color: '#374151', marginBottom: '0.35rem' }}>
+                Digite a palavra <strong style={{ color: '#dc2626' }}>ZERAR</strong> para confirmar:
+              </label>
+              <input
+                type="text"
+                value={resetConfirmWord}
+                onChange={(e) => setResetConfirmWord(e.target.value.toUpperCase())}
+                placeholder="ZERAR"
+                className="input-elegant"
+                style={{ textAlign: 'center', fontWeight: 800, letterSpacing: '0.15em', borderColor: resetConfirmWord === 'ZERAR' ? '#10b981' : '#f87171' }}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setResetTransactionsModal(false)}
+                className="btn-secondary cursor-pointer"
+                style={{ flex: 1, padding: '0.75rem' }}
+                disabled={resetTransactionsLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleResetTransactions}
+                disabled={resetConfirmWord !== 'ZERAR' || resetTransactionsLoading}
+                style={{
+                  flex: 1.2,
+                  padding: '0.75rem',
+                  background: resetConfirmWord === 'ZERAR' ? '#dc2626' : '#9ca3af',
+                  color: 'white',
+                  fontWeight: 800,
+                  fontSize: '0.85rem',
+                  borderRadius: '0.75rem',
+                  border: 'none',
+                  cursor: resetConfirmWord === 'ZERAR' ? 'pointer' : 'not-allowed',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s',
+                }}
+              >
+                {resetTransactionsLoading ? (
+                  <Loader2 className="animate-spin" size={16} />
+                ) : (
+                  "CONFIRMAR RESET"
+                )}
+              </button>
             </div>
           </div>
         </div>
