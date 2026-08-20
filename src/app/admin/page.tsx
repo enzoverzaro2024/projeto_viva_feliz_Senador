@@ -172,6 +172,7 @@ export default function AdminDashboard() {
   const [reforcoShowDone, setReforcoShowDone] = useState<"pending" | "done" | "invalid">("pending");
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [transLoading, setTransLoading] = useState(false);
+  const [transactionSearch, setTransactionSearch] = useState("");
   const [txFilterType, setTxFilterType] = useState<"all" | "credit" | "debit">("all");
 
   // Sales Report state
