@@ -271,23 +271,44 @@ export default function ScannerClient() {
 
   return (
     <div className="min-h-screen bg-gradient-main">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-border bg-background/85 backdrop-blur-md">
-        <div className="container p-4 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Heart className="w-8 h-8 text-accent fill-accent" />
-            <h1 className="text-xl md:text-2xl font-bold m-0 font-playfair hidden sm:block">
-              {user?.role === "admin" ? "Tesorería (Admin)" : "Puesto / Caseta (Voluntario)"}
-            </h1>
+      {/* Corporate Financial Top Header */}
+      <header className="border-b border-slate-800 bg-slate-950/95 text-slate-100 backdrop-blur-xl sticky top-0 z-50 shadow-md">
+        <div className="container py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <Heart className="w-5 h-5 text-white fill-white" />
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white font-inter m-0">
+                SISTEMA FINANCEIRO <span className="text-emerald-400">G$</span>
+              </h1>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-widest m-0 hidden sm:block">
+                {user?.role === "admin" ? "Tesorería — Recargas G$" : "Terminal de Venta — Puesto / Caseta"}
+              </p>
+            </div>
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
             {user?.role === "admin" ? (
-              <button onClick={() => router.push("/admin")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Panel Admin</button>
+              <button
+                onClick={() => router.push("/admin")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer"
+              >
+                Panel Admin
+              </button>
             ) : (
-              <button onClick={() => router.push("/volunteer/dashboard")} className="btn-secondary px-3 py-2 text-sm md:text-base md:px-4">Mis Ventas</button>
+              <button
+                onClick={() => router.push("/volunteer/dashboard")}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer"
+              >
+                Mis Ventas
+              </button>
             )}
-            <button onClick={handleLogout} className="btn-secondary p-2 md:px-4" aria-label="Cerrar Sesión">
-              <LogOut className="w-4 h-4 md:w-5 md:h-5" />
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+              aria-label="Cerrar Sesión"
+            >
+              <LogOut className="w-4 h-4" />
             </button>
           </div>
         </div>

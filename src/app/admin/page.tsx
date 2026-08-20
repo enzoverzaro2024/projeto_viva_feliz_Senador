@@ -1434,20 +1434,36 @@ Te esperamos lá! 🔥`;
       {/* Input global para importação CSV */}
       <input id="csv-upload" type="file" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} />
 
-      {/* Header */}
-      <header style={{ borderBottom: '1px solid var(--border)', background: 'rgba(250,249,247,0.85)', backdropFilter: 'blur(10px)', position: 'sticky', top: 0, zIndex: 50 }}>
-        <div className="container" style={{ padding: '0.75rem 1rem', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Heart style={{ width: 24, height: 24, color: 'var(--accent)', fill: 'var(--accent)' }} />
-            <h1 style={{ fontSize: '1.2rem', margin: 0 }} className="hide-on-mobile">Viva Feliz Admin</h1>
-            <h1 style={{ fontSize: '1rem', margin: 0, display: 'none' }} className="show-on-mobile">V. Feliz Admin</h1>
+      {/* Header Corporate Financial System */}
+      <header className="border-b border-slate-800 bg-slate-950/95 text-slate-100 backdrop-blur-xl sticky top-0 z-50 shadow-md">
+        <div className="container py-3 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-emerald-500 to-indigo-600 flex items-center justify-center shadow-md shadow-emerald-500/20">
+              <CreditCard className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-base sm:text-lg font-extrabold tracking-tight text-white font-inter m-0">
+                SISTEMA FINANCEIRO <span className="text-emerald-400">G$</span>
+              </h1>
+              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-widest m-0 hidden sm:block">
+                Painel Administrativo da Feira Escolar
+              </p>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
-            <button onClick={() => router.push("/volunteer/scanner")} className="btn-secondary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
-              <QrCode style={{ width: 14, height: 14 }} /> <span className="hide-on-mobile">Scanner</span>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => router.push("/volunteer/scanner")}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all cursor-pointer"
+            >
+              <QrCode className="w-4 h-4 text-emerald-400" />
+              <span className="hide-on-mobile">Escanear POS</span>
             </button>
-            <button onClick={handleLogout} className="btn-primary" style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}>
-              <LogOut style={{ width: 14, height: 14 }} /> <span className="hide-on-mobile">Sair</span>
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-rose-600/20 hover:bg-rose-600/30 text-rose-300 border border-rose-500/30 transition-all cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hide-on-mobile">Sair</span>
             </button>
           </div>
         </div>
