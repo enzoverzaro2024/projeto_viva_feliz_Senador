@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { users, participants } from "@/lib/db/schema";
 import { verifyPassword, createSession, COOKIE_NAME } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { eq, ilike, or } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
   try {
@@ -15,15 +15,25 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    const cleanInput = String(email).trim();
+    const cleanEmail = cleanInput.toLowerCase();
+    const cleanPassword = String(password).trim();
+
     // First, try to login as a participant if password is "123456"
-    if (password === "123456") {
-      // The "email" field might actually be the card number typed by the user
-      // Require drizzle import: import { participants } from "@/lib/db/schema";
-      let pQuery = await db.select().from(participants).where(eq(participants.cardNumber, email)).limit(1);
+    if (cleanPassword === "123456") {
+      const padded = cleanInput.padStart(3, "0");
+      let pQuery = await db.select().from(participants).where(
+        or(
+          eq(participants.cardNumber, cleanInput),
+          eq(participants.cardNumber, padded),
+          ilike(participants.cardId, cleanInput)
+        )
+      ).limit(1);
+
       if (pQuery.length > 0) {
         const p = pQuery[0];
         const token = await createSession({
-          userId: p.id, // Em vez de user.id, passa o participant.id
+          userId: p.id,
           email: p.cardNumber || "",
           role: "participant",
         });
@@ -49,7 +59,7 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+    const result = await db.select().from(users).where(ilike(users.email, cleanEmail)).limit(1);
     const user = result[0];
 
     if (!user) {
@@ -59,7 +69,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const valid = await verifyPassword(password, user.password);
+    const valid = await verifyPassword(cleanPassword, user.password);
     if (!valid) {
       return NextResponse.json(
         { error: "Email ou senha inválidos" },
