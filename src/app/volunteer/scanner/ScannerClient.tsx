@@ -2,7 +2,7 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useRouter } from "next/navigation";
-import { Heart, LogOut, Loader2, X, Check, Camera } from "lucide-react";
+import { Heart, LogOut, Loader2, X, Check, Camera, Lock, Delete } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { formatGuarani } from "@/lib/utils";
@@ -14,12 +14,14 @@ interface ScannedCard {
   phone: string;
   currentBalance: string;
   cardNumber: string;
+  pin?: string | null;
 }
 
 interface Transaction {
   id: number;
   amount: string;
   description: string;
+  volunteerName?: string;
   createdAt: string;
 }
 
@@ -37,6 +39,10 @@ export default function ScannerClient() {
   const [wantScanner, setWantScanner] = useState(false);
   const [auctionEnabled, setAuctionEnabled] = useState(false);
   const scannerRef = useRef<any>(null);
+
+  // PIN Security Modal State
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pinInput, setPinInput] = useState("");
 
   useEffect(() => {
     if (!user || (user.role !== "volunteer" && user.role !== "admin")) {
@@ -209,6 +215,8 @@ export default function ScannerClient() {
     setDescription("");
     setDebitAmount("");
     setAuctionItem("");
+    setShowPinModal(false);
+    setPinInput("");
   };
 
   const handleLogout = async () => {
@@ -219,7 +227,7 @@ export default function ScannerClient() {
   const [debitAmount, setDebitAmount] = useState("");
   const [auctionItem, setAuctionItem] = useState("");
 
-  const handleDebit = async () => {
+  const handleOpenPinModal = () => {
     if (!scannedCard || !debitAmount) {
       toast.error("Ingrese el monto de la compra (débito)");
       return;
@@ -236,8 +244,32 @@ export default function ScannerClient() {
       return;
     }
 
-    const cardDisplayName = scannedCard.name ? scannedCard.name : `Tarjeta #${scannedCard.cardNumber || scannedCard.id}`;
-    if (!confirm(`¿Confirmar venta de ${formatGuarani(val)} a ${cardDisplayName}?`)) return;
+    setPinInput("");
+    setShowPinModal(true);
+  };
+
+  const handleKeypadPress = (digit: string) => {
+    if (pinInput.length < 4) {
+      setPinInput((prev) => prev + digit);
+    }
+  };
+
+  const handleKeypadBackspace = () => {
+    setPinInput((prev) => prev.slice(0, -1));
+  };
+
+  const handleKeypadClear = () => {
+    setPinInput("");
+  };
+
+  const submitDebitWithPin = async () => {
+    if (!scannedCard || !debitAmount) return;
+    if (pinInput.length < 4) {
+      toast.error("Ingrese los 4 dígitos de la contraseña del tarjeta");
+      return;
+    }
+
+    const val = parseFloat(debitAmount);
 
     try {
       setIsLoading(true);
@@ -248,6 +280,7 @@ export default function ScannerClient() {
           participantId: scannedCard.id,
           amount: (-val).toString(),
           description: auctionItem ? `Venta: ${auctionItem}` : "Venta en el Puesto",
+          pin: pinInput,
         }),
       });
       const data = await res.json();
@@ -255,13 +288,18 @@ export default function ScannerClient() {
 
       const saldoAtual = data.newBalance ? data.newBalance : 0;
       toast.success(`¡Venta de ${formatGuarani(val)} realizada! Saldo restante: ${formatGuarani(saldoAtual)}`);
+      
+      setShowPinModal(false);
+      setPinInput("");
+      setDebitAmount("");
+      setAuctionItem("");
+
       if (scannedCard) {
         fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
       }
-      setDebitAmount("");
-      setAuctionItem("");
     } catch (error: any) {
       toast.error(error.message || "Error al realizar la venta");
+      setPinInput(""); // Reseta a senha para digitar novamente
     } finally {
       setIsLoading(false);
     }
@@ -450,11 +488,12 @@ export default function ScannerClient() {
                     </p>
 
                     <button 
-                      onClick={handleDebit} 
+                      onClick={handleOpenPinModal} 
                       disabled={isLoading || !debitAmount} 
-                      className="btn-primary w-full py-4 bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 flex justify-center items-center gap-2 font-bold text-base"
+                      className="btn-primary w-full py-4 bg-indigo-600 hover:bg-indigo-700 shadow-indigo-200 flex justify-center items-center gap-2 font-bold text-base cursor-pointer"
                     >
-                      {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : `CONFIRMAR VENTA DE ${debitAmount ? formatGuarani(debitAmount) : 'G$ 0'}`}
+                      <Lock className="w-5 h-5 text-white" />
+                      <span>{`CONFIRMAR VENTA DE ${debitAmount ? formatGuarani(debitAmount) : 'G$ 0'}`}</span>
                     </button>
                   </div>
                 </div>
@@ -591,6 +630,122 @@ export default function ScannerClient() {
           </div>
         </div>
       </div>
+
+      {/* ===== MODAL TECLADO NUMÉRICO (PIN SEGURANÇA) ===== */}
+      {showPinModal && scannedCard && (
+        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl text-center relative overflow-hidden">
+            {/* Top Accent Line */}
+            <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-emerald-500 via-indigo-500 to-teal-500" />
+
+            <div className="flex justify-between items-center mb-4">
+              <div className="flex items-center gap-2">
+                <Lock className="w-5 h-5 text-emerald-400" />
+                <span className="text-sm font-bold uppercase tracking-wider text-slate-300">
+                  Autenticación PIN
+                </span>
+              </div>
+              <button
+                onClick={() => setShowPinModal(false)}
+                className="text-slate-400 hover:text-white bg-slate-800 p-1.5 rounded-full cursor-pointer transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="mb-4 bg-slate-950/80 p-3 rounded-2xl border border-slate-800">
+              <p className="text-xs text-slate-400 uppercase tracking-wider">Venta a realizar</p>
+              <p className="text-2xl font-extrabold text-emerald-400 font-inter my-0.5">
+                {formatGuarani(debitAmount)}
+              </p>
+              <p className="text-xs text-slate-300 truncate">
+                {scannedCard.name || `Tarjeta #${scannedCard.cardNumber || scannedCard.id}`}
+              </p>
+            </div>
+
+            <p className="text-xs font-semibold text-slate-300 mb-3">
+              {scannedCard.pin
+                ? "🔒 DIGITE LA CONTRASEÑA DEL CARTÓN (4 DÍGITOS)"
+                : "🆕 REGISTRE UN PIN DE 4 DÍGITOS PARA ESTE CARTÓN"}
+            </p>
+
+            {/* 4 Masked PIN Indicator Circles */}
+            <div className="flex justify-center gap-3 mb-6">
+              {[0, 1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl font-bold border-2 transition-all ${
+                    pinInput.length > i
+                      ? "bg-gradient-to-tr from-emerald-600 to-teal-600 border-emerald-400 text-white shadow-lg shadow-emerald-500/30 scale-105"
+                      : "bg-slate-950 border-slate-800 text-slate-600"
+                  }`}
+                >
+                  {pinInput.length > i ? "●" : ""}
+                </div>
+              ))}
+            </div>
+
+            {/* Onscreen Numeric Touch Keypad */}
+            <div className="grid grid-cols-3 gap-2.5 mb-6">
+              {["1", "2", "3", "4", "5", "6", "7", "8", "9"].map((digit) => (
+                <button
+                  key={digit}
+                  type="button"
+                  onClick={() => handleKeypadPress(digit)}
+                  className="py-3.5 bg-slate-800/90 hover:bg-slate-700 active:bg-emerald-600 text-white font-extrabold text-xl rounded-2xl border border-slate-700/80 shadow-md transition-all active:scale-95 cursor-pointer font-inter"
+                >
+                  {digit}
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={handleKeypadClear}
+                className="py-3.5 bg-slate-800/40 hover:bg-slate-800 text-slate-400 font-bold text-sm rounded-2xl border border-slate-800 transition-all cursor-pointer"
+              >
+                C
+              </button>
+              <button
+                type="button"
+                onClick={() => handleKeypadPress("0")}
+                className="py-3.5 bg-slate-800/90 hover:bg-slate-700 active:bg-emerald-600 text-white font-extrabold text-xl rounded-2xl border border-slate-700/80 shadow-md transition-all active:scale-95 cursor-pointer font-inter"
+              >
+                0
+              </button>
+              <button
+                type="button"
+                onClick={handleKeypadBackspace}
+                className="py-3.5 bg-slate-800/40 hover:bg-slate-800 text-rose-400 font-bold text-sm rounded-2xl border border-slate-800 flex items-center justify-center transition-all cursor-pointer"
+                title="Apagar"
+              >
+                <Delete className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setShowPinModal(false)}
+                className="w-1/2 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs uppercase tracking-wider rounded-xl transition-all cursor-pointer"
+                disabled={isLoading}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={submitDebitWithPin}
+                disabled={isLoading || pinInput.length < 4}
+                className="w-1/2 py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs uppercase tracking-wider rounded-xl shadow-lg shadow-emerald-500/20 transition-all cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-1.5"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                ) : (
+                  <span>CONFIRMAR</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

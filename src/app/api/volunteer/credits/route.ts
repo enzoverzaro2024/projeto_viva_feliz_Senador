@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const { participantId, amount, description } = await req.json();
+    const { participantId, amount, description, pin } = await req.json();
 
     if (!participantId || !amount) {
       return NextResponse.json(
@@ -46,19 +46,45 @@ export async function POST(req: NextRequest) {
     }
 
     // Check participant exists
-    const participant = await db.select().from(participants)
+    const participantRes = await db.select().from(participants)
       .where(eq(participants.id, participantId)).limit(1);
 
-    if (participant.length === 0) {
+    if (participantRes.length === 0) {
       return NextResponse.json(
         { error: "Participante não encontrado" },
         { status: 404 }
       );
     }
 
+    const participant = participantRes[0];
+
+    // Se for Operação de Débito (Venda nas Bancas), validar a Senha / PIN do Cartão
+    if (amountFloat < 0) {
+      if (participant.pin) {
+        if (!pin || pin.trim() !== participant.pin.trim()) {
+          return NextResponse.json(
+            { error: "¡Contraseña/PIN de la tarjeta incorrecto! Verifique los 4 dígitos e intente nuevamente." },
+            { status: 400 }
+          );
+        }
+      } else {
+        // Se o cartão não tem PIN cadastrado e o usuário forneceu um PIN de 4 dígitos, cadastrar agora!
+        if (pin && pin.trim().length >= 4) {
+          await db.update(participants)
+            .set({ pin: pin.trim(), updatedAt: new Date() })
+            .where(eq(participants.id, participantId));
+        } else {
+          return NextResponse.json(
+            { error: "Esta tarjeta requiere registrar un PIN de 4 dígitos para realizar compras." },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Fetch volunteer user details for booth name
     const volunteerUser = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
-    const volunteerName = volunteerUser[0]?.name || session.name || "Puesto";
+    const volunteerName = volunteerUser[0]?.name || "Puesto";
 
     let finalDescription = description;
     if (amountFloat < 0) {
@@ -80,7 +106,7 @@ export async function POST(req: NextRequest) {
     }).returning();
 
     // Update participant balance
-    const currentBalance = parseFloat(participant[0].currentBalance);
+    const currentBalance = parseFloat(participant.currentBalance);
     const newBalanceFloat = currentBalance + amountFloat;
 
     if (newBalanceFloat < 0) {

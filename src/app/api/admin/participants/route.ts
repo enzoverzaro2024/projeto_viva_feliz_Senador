@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json();
     const {
       participantId, name, email, phone, age, address, neighborhood,
-      currentBalance, cardNumber,
+      currentBalance, cardNumber, pin,
       processedResgate, processedReforco,
       resgateNote, reforcoNote,
       resetAllProcessed,
@@ -177,6 +177,7 @@ export async function PATCH(req: NextRequest) {
     if (address !== undefined) updateData.address = address;
     if (neighborhood !== undefined) updateData.neighborhood = neighborhood;
     if (cardNumber !== undefined) updateData.cardNumber = cardNumber; 
+    if (pin !== undefined) updateData.pin = pin ? pin.trim() : null;
     
     if (currentBalance !== undefined && currentBalance !== null && currentBalance !== "") {
       const parsed = parseFloat(currentBalance.toString().replace(',', '.'));

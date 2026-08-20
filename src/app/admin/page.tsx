@@ -21,6 +21,7 @@ interface ParticipantData {
   neighborhood: string | null;
   cardId: string;
   cardNumber: string | null;
+  pin?: string | null;
   currentBalance: string;
   processedResgate: number;
   processedReforco: number;
@@ -110,7 +111,7 @@ export default function AdminDashboard() {
 
   // Inline edit state
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [editData, setEditData] = useState({ name: "", email: "", phone: "", balance: "", cardNumber: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
+  const [editData, setEditData] = useState({ name: "", email: "", phone: "", balance: "", cardNumber: "", pin: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
   const [editLoading, setEditLoading] = useState(false);
   const [showExtraCols, setShowExtraCols] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -729,13 +730,13 @@ Te esperamos lá! 🔥`;
   const startEdit = (p: ParticipantData) => {
     setEditingId(p.id);
     const count = allAttendance.filter(a => a.participantId === p.id).length;
-    setEditData({ name: p.name, email: p.email, phone: p.phone, balance: parseFloat(p.currentBalance).toFixed(2), cardNumber: p.cardNumber || "", age: p.age || "", address: p.address || "", neighborhood: p.neighborhood || "", attendanceCount: count });
+    setEditData({ name: p.name, email: p.email, phone: p.phone, balance: parseFloat(p.currentBalance).toFixed(2), cardNumber: p.cardNumber || "", pin: p.pin || "", age: p.age || "", address: p.address || "", neighborhood: p.neighborhood || "", attendanceCount: count });
     setShowEditModal(true);
   };
 
   const cancelEdit = () => {
     setEditingId(null);
-    setEditData({ name: "", email: "", phone: "", balance: "", cardNumber: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
+    setEditData({ name: "", email: "", phone: "", balance: "", cardNumber: "", pin: "", age: "", address: "", neighborhood: "", attendanceCount: 0 });
     setShowEditModal(false);
   };
 
@@ -755,6 +756,7 @@ Te esperamos lá! 🔥`;
           address: editData.address,
           neighborhood: editData.neighborhood,
           cardNumber: editData.cardNumber,
+          pin: editData.pin,
           currentBalance: editData.balance,
         }),
       });
@@ -3547,10 +3549,14 @@ Te esperamos lá! 🔥`;
                 <input value={editData.name} onChange={(e) => setEditData({...editData, name: e.target.value})} className="input-elegant" />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '0.75rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: '0.75rem' }}>
                 <div>
                   <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Nº Cartão</label>
                   <input value={editData.cardNumber} onChange={(e) => setEditData({...editData, cardNumber: e.target.value})} className="input-elegant" style={{ fontFamily: 'monospace', padding: '0.5rem' }} />
+                </div>
+                <div>
+                  <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem', color: '#10b981', fontWeight: 800 }}>🔒 PIN (4 dig)</label>
+                  <input value={editData.pin} maxLength={4} placeholder="1234" onChange={(e) => setEditData({...editData, pin: e.target.value})} className="input-elegant font-mono font-bold" style={{ textAlign: 'center', color: '#10b981', border: '2px solid #10b981', background: 'rgba(16, 185, 129, 0.05)', padding: '0.5rem' }} />
                 </div>
                 <div>
                   <label className="label-elegant" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>Saldo (Pts)</label>

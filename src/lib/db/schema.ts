@@ -23,6 +23,7 @@ export const participants = pgTable("participants", {
   neighborhood: varchar("neighborhood", { length: 100 }),
   cardId: varchar("card_id", { length: 64 }).notNull().unique(),
   cardNumber: varchar("card_number", { length: 50 }), // Nova Coluna "Número do Cartão"
+  pin: varchar("pin", { length: 10 }), // Senha de 4 dígitos do Cartão
   currentBalance: decimal("current_balance", { precision: 10, scale: 2 }).default("0").notNull(),
   processedResgate: integer("processed_resgate").default(0).notNull(), // 0=pendente, 1=enviado, 2=falhou
   processedReforco: integer("processed_reforco").default(0).notNull(), // 0=pendente, 1=enviado, 2=falhou
