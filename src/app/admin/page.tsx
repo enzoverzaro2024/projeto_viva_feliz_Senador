@@ -172,8 +172,68 @@ export default function AdminDashboard() {
   const [reforcoShowDone, setReforcoShowDone] = useState<"pending" | "done" | "invalid">("pending");
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [transLoading, setTransLoading] = useState(false);
-  const [transactionSearch, setTransactionSearch] = useState("");
   const [txFilterType, setTxFilterType] = useState<"all" | "credit" | "debit">("all");
+
+  // Sales Report state
+  const [salesReport, setSalesReport] = useState<{
+    summary: { totalTreasury: number; totalSales: number; totalRemaining: number };
+    bancas: Array<{ volunteerId: number; name: string; email: string; totalSales: number; salesCount: number; totalCreditsAdded: number }>;
+  } | null>(null);
+  const [salesReportLoading, setSalesReportLoading] = useState(false);
+
+  const fetchSalesReport = async () => {
+    setSalesReportLoading(true);
+    try {
+      const res = await fetch("/api/admin/reports/sales");
+      const data = await res.json();
+      if (res.ok) setSalesReport(data);
+      else toast.error("Erro ao carregar relatório");
+    } catch {
+      toast.error("Erro de conexão ao carregar relatório");
+    } finally {
+      setSalesReportLoading(false);
+    }
+  };
+
+  const exportSalesCSV = () => {
+    if (!salesReport || !salesReport.bancas) return;
+    const data = salesReport.bancas.map(b => ({
+      "Nome da Banca / Operador": b.name,
+      "Email": b.email,
+      "Vendas Realizadas": b.salesCount,
+      "Total Vendido (G$)": b.totalSales,
+      "Total Recarregado (G$)": b.totalCreditsAdded
+    }));
+    const csv = Papa.unparse(data);
+    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", `relatorio_vendas_feira_${new Date().toISOString().slice(0,10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  // States for Card Transfer
+  const [transferParticipant, setTransferParticipant] = useState<ParticipantData | null>(null);
+  const [newCardIdForTransfer, setNewCardIdForTransfer] = useState("");
+  const [newCardNumberForTransfer, setNewCardNumberForTransfer] = useState("");
+  const [transferLoading, setTransferLoading] = useState(false);
+
+  // Memo para a lista de presença ordenada por quem tem MAIS presenças
+  const sortedPresenceParticipants = useMemo(() => {
+    return [...participants]
+      .filter(p =>
+        p.name.toLowerCase().includes(presenceSearch.toLowerCase()) ||
+        (p.cardNumber || '').includes(presenceSearch)
+      )
+      .map(p => {
+        const count = allAttendance.filter(a => a.participantId === p.id).length;
+        return { ...p, attendanceCount: count };
+      })
+      .sort((a, b) => b.attendanceCount - a.attendanceCount);
+  }, [participants, allAttendance, presenceSearch]);
 
   // Transaction CRUD state
   const [showCreateTxModal, setShowCreateTxModal] = useState(false);
