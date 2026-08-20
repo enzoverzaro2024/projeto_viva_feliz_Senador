@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { participants } from "@/lib/db/schema";
-import { eq, ilike, or, desc, isNotNull, and, sql } from "drizzle-orm";
+import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
 // POST: Generate a batch of pre-printed cards
 export async function POST(req: NextRequest) {
   try {
     const session = await getSession();
-    if (!session) {
-      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    if (!session || session.role !== "admin") {
+      return NextResponse.json({ error: "Não autenticado ou sem permissão" }, { status: 401 });
     }
 
     const { quantity, prefix, specificNumber } = await req.json();
@@ -25,16 +25,30 @@ export async function POST(req: NextRequest) {
         .limit(1);
 
       if (conflict.length > 0) {
+        const owner = conflict[0];
+        const isGeneric = owner.name === "" || owner.name.startsWith("Cartão #");
+        const hasNoBalance = parseFloat(owner.currentBalance) === 0;
+
+        if (isGeneric && hasNoBalance) {
+          return NextResponse.json({
+            success: true,
+            message: `Cartão ${paddedSpecific} já existe em branco e foi recuperado!`,
+            cards: [{ num: paddedSpecific, cardId: owner.cardId, name: `Cartão #${paddedSpecific}`, cardNumber: paddedSpecific }]
+          });
+        }
+
         return NextResponse.json({ 
-          error: `O cartão ${paddedSpecific} já existe e pertence a ${conflict[0].name || 'um cadastro em branco'}.` 
+          error: `O cartão ${paddedSpecific} já pertence a "${owner.name}".` 
         }, { status: 400 });
       }
 
       const cardId = `EC-${paddedSpecific}-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const uniqueEmail = `cartao${paddedSpecific}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
+
       await db.insert(participants).values({
         userId: session.userId,
         name: "",
-        email: `cartao${paddedSpecific}@evento.local`,
+        email: uniqueEmail,
         phone: "---",
         cardId,
         cardNumber: paddedSpecific,
@@ -43,57 +57,75 @@ export async function POST(req: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        message: `Cartão ${paddedSpecific} restaurado com sucesso!`,
+        message: `Cartão ${paddedSpecific} gerado com sucesso!`,
         cards: [{ num: paddedSpecific, cardId, name: `Cartão #${paddedSpecific}`, cardNumber: paddedSpecific }]
       });
     }
 
     const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 200);
-    const pfx = prefix || "Cartão";
 
-    // Find the highest existing card number to continue from
+    // Fetch all existing card numbers
     const existing = await db.select({ cardNumber: participants.cardNumber })
       .from(participants)
       .where(isNotNull(participants.cardNumber));
 
+    const takenNumbersSet = new Set<number>();
     let maxNum = 0;
     for (const p of existing) {
       if (p.cardNumber) {
-        maxNum = Math.max(maxNum, parseInt(p.cardNumber));
+        const parsed = parseInt(p.cardNumber, 10);
+        if (!isNaN(parsed)) {
+          takenNumbersSet.add(parsed);
+          if (parsed > maxNum) maxNum = parsed;
+        }
       }
     }
 
     const created = [];
-    for (let i = 1; i <= qty; i++) {
-      const num = maxNum + i;
-      const padded = String(num).padStart(3, "0");
+    let currentNum = maxNum + 1;
+
+    while (created.length < qty) {
+      if (takenNumbersSet.has(currentNum)) {
+        currentNum++;
+        continue;
+      }
+
+      const padded = String(currentNum).padStart(3, "0");
       const cardId = `EC-${padded}-${randomUUID().slice(0, 6).toUpperCase()}`;
+      const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
-      await db.insert(participants).values({
-        userId: session.userId,
-        name: "",
-        email: `cartao${padded}@evento.local`,
-        phone: "---",
-        cardId,
-        cardNumber: padded,
-        currentBalance: "0",
-      });
+      try {
+        await db.insert(participants).values({
+          userId: session.userId,
+          name: "",
+          email: uniqueEmail,
+          phone: "---",
+          cardId,
+          cardNumber: padded,
+          currentBalance: "0",
+        });
 
-      created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
+        takenNumbersSet.add(currentNum);
+        created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
+      } catch (insertErr: any) {
+        console.warn(`Aviso ao criar cartão #${padded}:`, insertErr?.message);
+      }
+
+      currentNum++;
     }
 
     return NextResponse.json({
       success: true,
-      message: `${qty} cartões gerados com sucesso!`,
+      message: `¡${created.length} cartões gerados com sucesso!`,
       cards: created,
     });
   } catch (error: any) {
     console.error("Batch cards error:", error);
-    return NextResponse.json({ error: "Erro interno: " + error.message }, { status: 500 });
+    return NextResponse.json({ error: "Erro ao gerar cartões: " + (error.message || "Erro de banco de dados") }, { status: 500 });
   }
 }
 
-// GET: List unassigned cards (names starting with prefix)
+// GET: List unassigned cards
 export async function GET(req: NextRequest) {
   try {
     const session = await getSession();
@@ -116,7 +148,6 @@ export async function GET(req: NextRequest) {
         )
         .orderBy(desc(participants.createdAt));
     } else if (!showAll) {
-      // Show only unassigned (cards with empty names OR generic card names with 0 balance)
       result = await db.select().from(participants)
         .where(
           or(
