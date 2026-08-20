@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { participants } from "@/lib/db/schema";
+import { participants, users } from "@/lib/db/schema";
 import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import postgres from "postgres";
 
-export const maxDuration = 30; // Max 30s timeout on Vercel
+export const maxDuration = 30;
 
 // POST: Generate a batch of pre-printed cards
 export async function POST(req: NextRequest) {
@@ -15,12 +16,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Não autenticado ou sem permissão" }, { status: 401 });
     }
 
-    const { quantity, prefix, specificNumber } = await req.json();
+    const { quantity, specificNumber } = await req.json();
+
+    // Ensure valid admin user ID in DB
+    let adminUserId = session.userId;
+    const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, adminUserId)).limit(1);
+    if (userCheck.length === 0) {
+      // Fallback to first available admin
+      const anyAdmin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
+      if (anyAdmin.length > 0) adminUserId = anyAdmin[0].id;
+    }
 
     if (specificNumber) {
       const paddedSpecific = String(specificNumber).padStart(3, "0");
       
-      // Check if it already exists
       const conflict = await db.select()
         .from(participants)
         .where(eq(participants.cardNumber, paddedSpecific))
@@ -48,7 +57,7 @@ export async function POST(req: NextRequest) {
       const uniqueEmail = `cartao${paddedSpecific}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
       await db.insert(participants).values({
-        userId: session.userId,
+        userId: adminUserId,
         name: "",
         email: uniqueEmail,
         phone: "---",
@@ -64,9 +73,9 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 200);
+    const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 500);
 
-    // Fetch all existing card numbers to find highest number and avoid duplicates
+    // Fetch existing card numbers to find the highest number
     const existing = await db.select({ cardNumber: participants.cardNumber })
       .from(participants)
       .where(isNotNull(participants.cardNumber));
@@ -84,7 +93,7 @@ export async function POST(req: NextRequest) {
     }
 
     const created = [];
-    const toInsert = [];
+    const allToInsert: any[] = [];
     let currentNum = maxNum + 1;
 
     while (created.length < qty) {
@@ -97,14 +106,14 @@ export async function POST(req: NextRequest) {
       const cardId = `EC-${padded}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
-      toInsert.push({
-        userId: session.userId,
+      allToInsert.push({
+        user_id: adminUserId,
         name: "",
         email: uniqueEmail,
         phone: "---",
-        cardId,
-        cardNumber: padded,
-        currentBalance: "0",
+        card_id: cardId,
+        card_number: padded,
+        current_balance: "0",
       });
 
       takenNumbersSet.add(currentNum);
@@ -112,9 +121,19 @@ export async function POST(req: NextRequest) {
       currentNum++;
     }
 
-    // Ultra fast bulk insert in single SQL query!
-    if (toInsert.length > 0) {
-      await db.insert(participants).values(toInsert);
+    // Insert in chunks of 50 to prevent parameter limits in Postgres/Neon
+    if (allToInsert.length > 0) {
+      const conn = process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
+      const sql = postgres(conn, { ssl: "require", max: 5 });
+
+      const chunkSize = 50;
+      for (let i = 0; i < allToInsert.length; i += chunkSize) {
+        const chunk = allToInsert.slice(i, i + chunkSize);
+        await sql`
+          INSERT INTO participants ${sql(chunk, 'user_id', 'name', 'email', 'phone', 'card_id', 'card_number', 'current_balance')}
+        `;
+      }
+      await sql.end();
     }
 
     return NextResponse.json({
