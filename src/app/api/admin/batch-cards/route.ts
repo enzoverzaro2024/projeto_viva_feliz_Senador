@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { participants, users } from "@/lib/db/schema";
 import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
-import postgres from "postgres";
 
 export const maxDuration = 30;
 
@@ -22,7 +21,6 @@ export async function POST(req: NextRequest) {
     let adminUserId = session.userId;
     const userCheck = await db.select({ id: users.id }).from(users).where(eq(users.id, adminUserId)).limit(1);
     if (userCheck.length === 0) {
-      // Fallback to first available admin
       const anyAdmin = await db.select({ id: users.id }).from(users).where(eq(users.role, "admin")).limit(1);
       if (anyAdmin.length > 0) adminUserId = anyAdmin[0].id;
     }
@@ -93,7 +91,15 @@ export async function POST(req: NextRequest) {
     }
 
     const created = [];
-    const allToInsert: any[] = [];
+    const allToInsert: {
+      userId: number;
+      name: string;
+      email: string;
+      phone: string;
+      cardId: string;
+      cardNumber: string;
+      currentBalance: string;
+    }[] = [];
     let currentNum = maxNum + 1;
 
     while (created.length < qty) {
@@ -107,13 +113,13 @@ export async function POST(req: NextRequest) {
       const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
       allToInsert.push({
-        user_id: adminUserId,
+        userId: adminUserId,
         name: "",
         email: uniqueEmail,
         phone: "---",
-        card_id: cardId,
-        card_number: padded,
-        current_balance: "0",
+        cardId,
+        cardNumber: padded,
+        currentBalance: "0",
       });
 
       takenNumbersSet.add(currentNum);
@@ -121,19 +127,13 @@ export async function POST(req: NextRequest) {
       currentNum++;
     }
 
-    // Insert in chunks of 50 to prevent parameter limits in Postgres/Neon
+    // Insert in chunks of 50 to prevent parameter limits
     if (allToInsert.length > 0) {
-      const conn = process.env.DATABASE_URL_UNPOOLED || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL || process.env.POSTGRES_URL || "";
-      const sql = postgres(conn, { ssl: "require", max: 5 });
-
       const chunkSize = 50;
       for (let i = 0; i < allToInsert.length; i += chunkSize) {
         const chunk = allToInsert.slice(i, i + chunkSize);
-        await sql`
-          INSERT INTO participants ${sql(chunk, 'user_id', 'name', 'email', 'phone', 'card_id', 'card_number', 'current_balance')}
-        `;
+        await db.insert(participants).values(chunk);
       }
-      await sql.end();
     }
 
     return NextResponse.json({
