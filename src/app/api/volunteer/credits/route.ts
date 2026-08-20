@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { transactions, participants } from "@/lib/db/schema";
+import { transactions, participants, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
@@ -56,12 +56,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fetch volunteer user details for booth name
+    const volunteerUser = await db.select().from(users).where(eq(users.id, session.userId)).limit(1);
+    const volunteerName = volunteerUser[0]?.name || session.name || "Puesto";
+
+    let finalDescription = description;
+    if (amountFloat < 0) {
+      if (!description || description === "Venta en el Puesto" || description === "Venda na Banca") {
+        finalDescription = `Venta: ${volunteerName}`;
+      } else if (!description.includes(volunteerName)) {
+        finalDescription = `${description} — ${volunteerName}`;
+      }
+    } else {
+      finalDescription = description || "Recarga de Crédito (Tesorería)";
+    }
+
     // Create transaction
     const result = await db.insert(transactions).values({
       participantId,
       volunteerId: session.userId,
       amount,
-      description: description || (parseFloat(amount) < 0 ? "Venda no posto" : "Recarga de crédito"),
+      description: finalDescription,
     }).returning();
 
     // Update participant balance

@@ -563,9 +563,16 @@ export default function ScannerClient() {
                         <div key={tx.id} className="bg-white rounded-xl p-4 border border-border flex justify-between items-center shadow-sm">
                           <div>
                             <p className="font-semibold text-sm">{tx.description || "Sin descripción"}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {new Date(tx.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
-                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              {tx.volunteerName && (
+                                <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                  🏫 {tx.volunteerName}
+                                </span>
+                              )}
+                              <span className="text-xs text-muted-foreground">
+                                {new Date(tx.createdAt).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' })}
+                              </span>
+                            </div>
                           </div>
                           <div className={`font-bold ${parseFloat(tx.amount) > 0 ? 'text-green-600' : 'text-rose-600'} text-right`}>
                             {parseFloat(tx.amount) > 0 ? '+' : ''}{formatGuarani(tx.amount)}

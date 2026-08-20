@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { participants, transactions } from "@/lib/db/schema";
+import { participants, transactions, users } from "@/lib/db/schema";
 import { eq, or, ilike, desc } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -47,8 +47,18 @@ export async function GET(req: NextRequest) {
 
     const participant = result[0];
 
-    const recentTransactions = await db.select()
+    const recentTransactions = await db.select({
+      id: transactions.id,
+      participantId: transactions.participantId,
+      volunteerId: transactions.volunteerId,
+      amount: transactions.amount,
+      description: transactions.description,
+      createdAt: transactions.createdAt,
+      volunteerName: users.name,
+      volunteerEmail: users.email,
+    })
       .from(transactions)
+      .leftJoin(users, eq(transactions.volunteerId, users.id))
       .where(eq(transactions.participantId, participant.id))
       .orderBy(desc(transactions.createdAt))
       .limit(10);

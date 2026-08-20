@@ -23,6 +23,7 @@ interface TransactionData {
   id: number;
   amount: string;
   description: string | null;
+  volunteerName?: string;
   createdAt: string;
 }
 
@@ -259,11 +260,18 @@ export default function CartaoClient() {
                           <p className="font-semibold text-sm md:text-base text-foreground truncate mb-1">
                             {txn.description || (amountVal > 0 ? "Recarga Tesouraria" : "Compra na Banca")}
                           </p>
-                          <p className="text-xs text-muted-foreground">
-                            {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
-                              day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
-                            })}
-                          </p>
+                          <div className="flex items-center gap-2">
+                            {txn.volunteerName && (
+                              <span className="inline-flex items-center gap-1 text-[11px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                                🏫 {txn.volunteerName}
+                              </span>
+                            )}
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(txn.createdAt).toLocaleDateString("pt-BR", {
+                                day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit",
+                              })}
+                            </p>
+                          </div>
                         </div>
                         <p className={`text-base md:text-lg font-bold ${amountVal > 0 ? 'text-green-600' : 'text-rose-600'} shrink-0`}>
                           {amountVal > 0 ? '+' : ''}{formatGuarani(txn.amount)}

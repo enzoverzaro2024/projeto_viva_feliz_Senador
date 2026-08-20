@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { transactions, participants } from "@/lib/db/schema";
+import { transactions, participants, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export async function GET(req: NextRequest) {
@@ -22,7 +22,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ transactions: [] });
     }
 
-    const result = await db.select().from(transactions)
+    const result = await db.select({
+      id: transactions.id,
+      participantId: transactions.participantId,
+      volunteerId: transactions.volunteerId,
+      amount: transactions.amount,
+      description: transactions.description,
+      createdAt: transactions.createdAt,
+      volunteerName: users.name,
+      volunteerEmail: users.email,
+    })
+      .from(transactions)
+      .leftJoin(users, eq(transactions.volunteerId, users.id))
       .where(eq(transactions.participantId, participant[0].id))
       .orderBy(desc(transactions.createdAt));
 
