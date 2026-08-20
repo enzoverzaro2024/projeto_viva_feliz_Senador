@@ -29,6 +29,7 @@ export async function GET() {
         ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS template_qr_size INTEGER DEFAULT 180;
         ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS visible_tabs TEXT;
         ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS auction_enabled INTEGER DEFAULT 0;
+        ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS pin_required INTEGER DEFAULT 0;
         ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS updated_by INTEGER;
         ALTER TABLE event_settings ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT now();
       `);
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
       console.error("Erro no auto-repair:", e);
     }
 
-    const { projectName, location, prevSummary, prizesList, nextChallenge, tonightPoints, attPoints, customMessage, visibleTabs, auctionEnabled } = await req.json();
+    const { projectName, location, prevSummary, prizesList, nextChallenge, tonightPoints, attPoints, customMessage, visibleTabs, auctionEnabled, pinRequired } = await req.json();
 
     // Sanitize attPoints to ensure it's a valid string for decimal or null
     const safeAttPoints = (attPoints && attPoints.trim() !== "") ? attPoints.toString() : "50";
@@ -97,6 +98,7 @@ export async function POST(req: NextRequest) {
           customMessage: customMessage || "", 
           visibleTabs: visibleTabs || null,
           auctionEnabled: auctionEnabled ? 1 : 0,
+          pinRequired: pinRequired ? 1 : 0,
           updatedBy: session.userId, 
           updatedAt: new Date() 
         })
@@ -114,6 +116,7 @@ export async function POST(req: NextRequest) {
         customMessage: customMessage || "",
         visibleTabs: visibleTabs || null,
         auctionEnabled: auctionEnabled ? 1 : 0,
+        pinRequired: pinRequired ? 1 : 0,
         updatedBy: session.userId
       });
     }

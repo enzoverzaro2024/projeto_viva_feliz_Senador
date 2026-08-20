@@ -38,6 +38,7 @@ export default function ScannerClient() {
   const [scannerActive, setScannerActive] = useState(false);
   const [wantScanner, setWantScanner] = useState(false);
   const [auctionEnabled, setAuctionEnabled] = useState(false);
+  const [pinRequired, setPinRequired] = useState(false);
   const scannerRef = useRef<any>(null);
 
   // PIN Security Modal State
@@ -56,6 +57,7 @@ export default function ScannerClient() {
          const data = await res.json();
          if (res.ok && data.eventInfo) {
            setAuctionEnabled(!!data.eventInfo.auctionEnabled);
+           setPinRequired(!!data.eventInfo.pinRequired);
          }
        } catch {}
     };
@@ -244,8 +246,43 @@ export default function ScannerClient() {
       return;
     }
 
+    // Se PIN não é exigido, executa a venda direto sem abrir o modal
+    if (!pinRequired) {
+      await submitDebitDirect();
+      return;
+    }
+
     setPinInput("");
     setShowPinModal(true);
+  };
+
+  // Venda sem PIN (usado quando pinRequired=false)
+  const submitDebitDirect = async () => {
+    if (!scannedCard || !debitAmount) return;
+    const val = parseFloat(debitAmount);
+    try {
+      setIsLoading(true);
+      const res = await fetch("/api/volunteer/credits", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          participantId: scannedCard.id,
+          amount: (-val).toString(),
+          description: auctionItem ? `Venta: ${auctionItem}` : "Venta en el Puesto",
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      const saldoAtual = data.newBalance ? data.newBalance : 0;
+      toast.success(`¡Venta de ${formatGuarani(val)} realizada! Saldo restante: ${formatGuarani(saldoAtual)}`);
+      setDebitAmount("");
+      setAuctionItem("");
+      if (scannedCard) fetchParticipantData(scannedCard.cardNumber || scannedCard.id.toString(), false);
+    } catch (error: any) {
+      toast.error(error.message || "Error al realizar la venta");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeypadPress = (digit: string) => {

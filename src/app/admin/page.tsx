@@ -152,7 +152,8 @@ export default function AdminDashboard() {
     attPoints: "50",
     customMessage: "",
     visibleTabs: "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
-    auctionEnabled: 0
+    auctionEnabled: 0,
+    pinRequired: 0
   });
   const [eventInfoLoading, setEventInfoLoading] = useState(false);
   const [absentees, setAbsentees] = useState<ParticipantData[]>([]);
@@ -500,7 +501,8 @@ export default function AdminDashboard() {
           attPoints: data.eventInfo.attPoints?.toString() || "50",
           customMessage: loadedMsg,
           visibleTabs: data.eventInfo.visibleTabs || "participantes,pontos,ranking,cartoes,presenca,gestao_noite,resgate,reforco,usuarios",
-          auctionEnabled: data.eventInfo.auctionEnabled || 0
+          auctionEnabled: data.eventInfo.auctionEnabled || 0,
+          pinRequired: data.eventInfo.pinRequired || 0
         };
 
         // Verifica se a mensagem salva usa o sistema de tags
@@ -2393,6 +2395,21 @@ Te esperamos lá! 🔥`;
                         onChange={(e) => setEventInfo({ ...eventInfo, auctionEnabled: e.target.checked ? 1 : 0 })}
                       />
                       🔨 Leilão (Voluntários)
+                    </label>
+                    <label
+                      style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.85rem', cursor: 'pointer', padding: '0.4rem 0.75rem', border: `2px solid ${eventInfo.pinRequired ? '#dc2626' : '#d1d5db'}`, borderRadius: '0.5rem', background: eventInfo.pinRequired ? '#fff1f2' : 'white', color: eventInfo.pinRequired ? '#dc2626' : '#6b7280', fontWeight: 700, transition: 'all 0.2s' }}
+                      title="Quando ativado, exige que o consumidor informe a senha de 4 dígitos do cartão para comprar nas bancas"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={!!eventInfo.pinRequired}
+                        onChange={(e) => setEventInfo({ ...eventInfo, pinRequired: e.target.checked ? 1 : 0 })}
+                        style={{ accentColor: '#dc2626' }}
+                      />
+                      🔐 Exigir PIN nas compras
+                      <span style={{ fontSize: '0.7rem', background: eventInfo.pinRequired ? '#dc2626' : '#e5e7eb', color: eventInfo.pinRequired ? 'white' : '#6b7280', padding: '1px 6px', borderRadius: '999px', marginLeft: '2px' }}>
+                        {eventInfo.pinRequired ? 'ATIVO' : 'INATIVO'}
+                      </span>
                     </label>
                   </div>
                   <button

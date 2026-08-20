@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { transactions, participants, users } from "@/lib/db/schema";
+import { transactions, participants, users, eventSettings } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 
 export async function POST(req: NextRequest) {
@@ -58,8 +58,12 @@ export async function POST(req: NextRequest) {
 
     const participant = participantRes[0];
 
-    // Se for Operação de Débito (Venda nas Bancas), validar a Senha / PIN do Cartão
-    if (amountFloat < 0) {
+    // Verifica configuração global de exigência de PIN
+    const settingsRes = await db.select({ pinRequired: eventSettings.pinRequired }).from(eventSettings).where(eq(eventSettings.id, 1)).limit(1);
+    const pinRequired = settingsRes[0]?.pinRequired ?? 0;
+
+    // Se for Operação de Débito (Venda nas Bancas), validar a Senha / PIN do Cartão APENAS se pinRequired=1
+    if (amountFloat < 0 && pinRequired === 1) {
       if (participant.pin) {
         if (!pin || pin.trim() !== participant.pin.trim()) {
           return NextResponse.json(

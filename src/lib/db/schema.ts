@@ -66,7 +66,8 @@ export const eventSettings = pgTable("event_settings", {
   templateQrY: integer("template_qr_y").default(80),
   templateQrSize: integer("template_qr_size").default(180),
   visibleTabs: text("visible_tabs"), // Lista de abas visíveis para admins comuns
-  auctionEnabled: integer("auction_enabled").default(0).notNull(), 
+  auctionEnabled: integer("auction_enabled").default(0).notNull(),
+  pinRequired: integer("pin_required").default(0).notNull(), // 0=não exige PIN, 1=exige PIN nas compras
   updatedBy: integer("updated_by").references(() => users.id),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
