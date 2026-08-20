@@ -3749,6 +3749,9 @@ Te esperamos lá! 🔥`;
               </div>
             </div>
           </div>
+        </div>
+      )}
+
       {/* ===== MODAL DE CONFIRMAÇÃO DE RESET GERAL DE TESTES (SUPER ADMIN) ===== */}
       {resetTransactionsModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(2, 6, 23, 0.85)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '1rem' }}>
