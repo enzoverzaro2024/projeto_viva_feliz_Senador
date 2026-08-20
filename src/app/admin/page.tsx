@@ -224,6 +224,35 @@ export default function AdminDashboard() {
   const [newCardNumberForTransfer, setNewCardNumberForTransfer] = useState("");
   const [transferLoading, setTransferLoading] = useState(false);
 
+  // ---- QUICK INLINE NAME EDIT ----
+  const [quickEditId, setQuickEditId] = useState<number | null>(null);
+  const [quickEditValue, setQuickEditValue] = useState("");
+  const [quickEditSaving, setQuickEditSaving] = useState(false);
+
+  const saveQuickName = async (participantId: number) => {
+    if (!quickEditValue.trim() || quickEditSaving) return;
+    setQuickEditSaving(true);
+    try {
+      const res = await fetch("/api/admin/participants", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId, name: quickEditValue.trim() }),
+      });
+      if (res.ok) {
+        setParticipants(prev => prev.map(p => p.id === participantId ? { ...p, name: quickEditValue.trim() } : p));
+        toast.success("Nome salvo!");
+      } else {
+        toast.error("Erro ao salvar nome");
+      }
+    } catch {
+      toast.error("Erro de conexão");
+    } finally {
+      setQuickEditSaving(false);
+      setQuickEditId(null);
+      setQuickEditValue("");
+    }
+  };
+
   // Memo para a lista de presença ordenada por quem tem MAIS presenças
   const sortedPresenceParticipants = useMemo(() => {
     return [...participants]
@@ -1829,12 +1858,47 @@ Te esperamos lá! 🔥`;
                         {getSortedFiltered().map((p) => (
                           <tr
                             key={p.id}
-                            onDoubleClick={() => startEdit(p)}
-                            onClick={() => startEdit(p)}
-                            style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                            title="Clique para editar"
+                            style={{ borderBottom: '1px solid var(--border)' }}
                           >
-                            <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">{p.name || `Cartão #${p.cardNumber || '???'}`}</td>
+                            <td style={{ padding: '0.4rem 0.5rem', fontSize: '0.85rem' }} data-label="Nome">
+                              {quickEditId === p.id ? (
+                                <div style={{ display: 'flex', gap: '0.3rem', alignItems: 'center' }}>
+                                  <input
+                                    autoFocus
+                                    value={quickEditValue}
+                                    onChange={e => setQuickEditValue(e.target.value)}
+                                    onKeyDown={e => {
+                                      if (e.key === 'Enter') saveQuickName(p.id);
+                                      if (e.key === 'Escape') { setQuickEditId(null); setQuickEditValue(''); }
+                                    }}
+                                    onClick={e => e.stopPropagation()}
+                                    style={{ flex: 1, padding: '0.25rem 0.5rem', fontSize: '0.85rem', border: '2px solid var(--accent)', borderRadius: '0.4rem', background: 'var(--background)', color: 'var(--foreground)', minWidth: 0 }}
+                                    placeholder="Nome da pessoa / turma..."
+                                  />
+                                  <button onClick={e => { e.stopPropagation(); saveQuickName(p.id); }} disabled={quickEditSaving} style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', background: '#22c55e', color: '#fff', border: 'none', borderRadius: '0.3rem', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                                    {quickEditSaving ? '...' : '✓ Salvar'}
+                                  </button>
+                                  <button onClick={e => { e.stopPropagation(); setQuickEditId(null); setQuickEditValue(''); }} style={{ padding: '0.25rem 0.4rem', fontSize: '0.75rem', background: '#ef4444', color: '#fff', border: 'none', borderRadius: '0.3rem', cursor: 'pointer' }}>✕</button>
+                                </div>
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                  <span
+                                    onClick={() => startEdit(p)}
+                                    style={{ flex: 1, cursor: 'pointer', color: p.name.startsWith('Cartão #') ? 'var(--muted-foreground)' : 'inherit', fontStyle: p.name.startsWith('Cartão #') ? 'italic' : 'normal' }}
+                                    title="Clique para editar completo"
+                                  >
+                                    {p.name || `Cartão #${p.cardNumber || '???'}`}
+                                  </span>
+                                  <button
+                                    onClick={e => { e.stopPropagation(); setQuickEditId(p.id); setQuickEditValue(p.name.startsWith('Cartão #') ? '' : p.name); }}
+                                    title="Identificar comprador (edição rápida)"
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.1rem 0.25rem', opacity: 0.5, fontSize: '0.75rem', color: 'var(--accent)' }}
+                                  >
+                                    ✏️
+                                  </button>
+                                </div>
+                              )}
+                            </td>
                             {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem' }} data-label="Idade">{p.age || '---'}</td>}
                             {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Endereço">{p.address || '---'}</td>}
                             {showExtraCols && <td style={{ padding: '0.6rem 0.5rem', fontSize: '0.85rem', color: 'var(--muted-foreground)' }} data-label="Bairro">{p.neighborhood || '---'}</td>}
