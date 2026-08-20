@@ -229,7 +229,7 @@ export default function ScannerClient() {
   const [debitAmount, setDebitAmount] = useState("");
   const [auctionItem, setAuctionItem] = useState("");
 
-  const handleOpenPinModal = () => {
+  const handleOpenPinModal = async () => {
     if (!scannedCard || !debitAmount) {
       toast.error("Ingrese el monto de la compra (débito)");
       return;
