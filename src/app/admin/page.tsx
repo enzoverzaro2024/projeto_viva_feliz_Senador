@@ -1303,10 +1303,10 @@ Te esperamos lá! 🔥`;
         fetchUnassignedCards();
         fetchParticipants();
 
-        // Open print page with generated cards
+        // Open print page with generated cards using sessionStorage to prevent URL length limits
         const cardsForPrint = data.cards.map((c: any) => ({ cardId: c.cardId, name: c.name, cardNumber: c.cardNumber }));
-        const encoded = encodeURIComponent(JSON.stringify(cardsForPrint));
-        window.open(`/admin/print-cards?cards=${encoded}`, '_blank');
+        sessionStorage.setItem("printDataMass", JSON.stringify(cardsForPrint));
+        window.open(`/admin/print-cards`, '_blank');
       } else toast.error(data.error);
     } catch { toast.error("Erro ao gerar cartões"); }
     finally { setBatchLoading(false); }

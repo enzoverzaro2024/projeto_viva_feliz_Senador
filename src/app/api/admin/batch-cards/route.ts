@@ -5,6 +5,8 @@ import { participants } from "@/lib/db/schema";
 import { eq, ilike, or, desc, isNotNull, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
+export const maxDuration = 30; // Max 30s timeout on Vercel
+
 // POST: Generate a batch of pre-printed cards
 export async function POST(req: NextRequest) {
   try {
@@ -64,7 +66,7 @@ export async function POST(req: NextRequest) {
 
     const qty = Math.min(Math.max(parseInt(quantity) || 10, 1), 200);
 
-    // Fetch all existing card numbers
+    // Fetch all existing card numbers to find highest number and avoid duplicates
     const existing = await db.select({ cardNumber: participants.cardNumber })
       .from(participants)
       .where(isNotNull(participants.cardNumber));
@@ -82,6 +84,7 @@ export async function POST(req: NextRequest) {
     }
 
     const created = [];
+    const toInsert = [];
     let currentNum = maxNum + 1;
 
     while (created.length < qty) {
@@ -94,24 +97,24 @@ export async function POST(req: NextRequest) {
       const cardId = `EC-${padded}-${randomUUID().slice(0, 6).toUpperCase()}`;
       const uniqueEmail = `cartao${padded}-${randomUUID().slice(0, 4).toLowerCase()}@evento.local`;
 
-      try {
-        await db.insert(participants).values({
-          userId: session.userId,
-          name: "",
-          email: uniqueEmail,
-          phone: "---",
-          cardId,
-          cardNumber: padded,
-          currentBalance: "0",
-        });
+      toInsert.push({
+        userId: session.userId,
+        name: "",
+        email: uniqueEmail,
+        phone: "---",
+        cardId,
+        cardNumber: padded,
+        currentBalance: "0",
+      });
 
-        takenNumbersSet.add(currentNum);
-        created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
-      } catch (insertErr: any) {
-        console.warn(`Aviso ao criar cartão #${padded}:`, insertErr?.message);
-      }
-
+      takenNumbersSet.add(currentNum);
+      created.push({ num: padded, cardId, name: `Cartão #${padded}`, cardNumber: padded });
       currentNum++;
+    }
+
+    // Ultra fast bulk insert in single SQL query!
+    if (toInsert.length > 0) {
+      await db.insert(participants).values(toInsert);
     }
 
     return NextResponse.json({
